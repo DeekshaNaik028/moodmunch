@@ -1,0 +1,56 @@
+# ==========================================
+# CORE DEPENDENCIES - ESSENTIAL
+# ==========================================
+
+# FastAPI Framework (Required)
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+
+# Database (Required) - FIXED VERSIONS
+motor==3.5.1
+pymongo==4.8.0
+
+# Authentication & Security (Required)
+pyjwt==2.8.0
+bcrypt==4.1.2
+
+# Data Validation (Required)
+pydantic==2.5.3
+pydantic-settings==2.1.0
+email-validator==2.1.0
+
+# AI Model - Gemini (Required)
+google-generativeai==0.3.2
+
+# Environment Configuration (Required)
+python-dotenv==1.0.0
+
+# File Handling (Required)
+aiofiles==23.2.1
+
+# HTTP Requests (Required)
+httpx==0.26.0
+
+# ==========================================
+# OPTIONAL DEPENDENCIES
+# ==========================================
+
+# Date & Time utilities (Optional but useful)
+python-dateutil==2.8.2
+
+# Logging (Optional)
+python-json-logger==2.0.7
+
+# ==========================================
+# NOTES
+# ==========================================
+# CORS: Built into FastAPI (no separate package needed)
+# Audio Processing: Handled by Gemini AI (no pydub/SpeechRecognition needed)
+# Image Processing: Not needed (no Pillow required)
+
+# ==========================================
+# TESTING (Optional - Uncomment if needed)
+# ==========================================
+# pytest==7.4.4
+# pytest-asyncio==0.23.3
