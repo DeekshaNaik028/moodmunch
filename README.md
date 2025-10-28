@@ -212,4 +212,3 @@ For issues or questions:
 ---
 
 **Built with ❤️ using FastAPI, React, MongoDB, and Google Gemini AI**
-```
