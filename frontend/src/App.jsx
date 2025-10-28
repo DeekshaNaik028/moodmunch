@@ -3,6 +3,7 @@ import { useAuth } from './contexts/AuthContext';
 import { AppLayout } from './components/layout/AppLayout';
 import { AuthScreen } from './components/auth/AuthScreen';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
+import { NetworkStatus } from './components/common/NetworkStatus';
 
 const App = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -15,7 +16,12 @@ const App = () => {
     );
   }
 
-  return isAuthenticated ? <AppLayout /> : <AuthScreen />;
+  return (
+    <>
+      <NetworkStatus />
+      {isAuthenticated ? <AppLayout /> : <AuthScreen />}
+    </>
+  );
 };
 
 export default App;

@@ -1,4 +1,4 @@
-import { API_BASE } from '../utils/constants';
+import { API_BASE, API_TIMEOUT } from '../utils/constants';
 
 class ApiService {
   async call(endpoint, options = {}) {
@@ -9,19 +9,40 @@ class ApiService {
       ...options.headers,
     };
 
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-      ...options,
-      headers,
-    });
+    // Create abort controller for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ 
-        detail: 'Request failed' 
-      }));
-      throw new Error(error.detail || 'Something went wrong');
+    try {
+      const response = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ 
+          detail: `Request failed with status ${response.status}` 
+        }));
+        throw new Error(error.detail || 'Something went wrong');
+      }
+
+      return response.json();
+    } catch (error) {
+      clearTimeout(timeoutId);
+      
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout. Please check your connection and try again.');
+      }
+      
+      if (!navigator.onLine) {
+        throw new Error('No internet connection. Please check your network.');
+      }
+      
+      throw error;
     }
-
-    return response.json();
   }
 
   auth = {
@@ -41,14 +62,36 @@ class ApiService {
       formData.append('file', file);
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`${API_BASE}/ingredients/extract-from-audio`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s for audio
       
-      if (!response.ok) throw new Error('Audio processing failed');
-      return response.json();
+      try {
+        const response = await fetch(`${API_BASE}/ingredients/extract-from-audio`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({ 
+            detail: 'Audio processing failed' 
+          }));
+          throw new Error(error.detail || 'Failed to process audio');
+        }
+        
+        return response.json();
+      } catch (error) {
+        clearTimeout(timeoutId);
+        
+        if (error.name === 'AbortError') {
+          throw new Error('Audio processing timeout. Please try a shorter recording.');
+        }
+        
+        throw error;
+      }
     },
     extractFromText: (text) => this.call('/ingredients/extract-from-text', {
       method: 'POST',
@@ -83,6 +126,11 @@ class ApiService {
     getDashboard: () => this.call('/analytics/dashboard'),
     getMoodTrends: (days = 30) => this.call(`/analytics/mood-trends?days=${days}`),
     getIngredientStats: () => this.call('/analytics/ingredient-stats'),
+  };
+
+  // Health check
+  health = {
+    check: () => this.call('/health'),
   };
 }
 
