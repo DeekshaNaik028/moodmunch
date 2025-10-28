@@ -1,10 +1,11 @@
-#mongodb.py
+# backend/app/database/mongodb.py - SERVERLESS VERSION
 from motor.motor_asyncio import AsyncIOMotorClient
-from pymongo.errors import DuplicateKeyError
+from pymongo.errors import DuplicateKeyError, ServerSelectionTimeoutError
 from bson import ObjectId
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 import logging
+import os
 
 from app.core.config import get_settings
 
@@ -17,33 +18,94 @@ class MongoDB:
         self.database = None
         
     async def connect(self):
+        """Connect to MongoDB with serverless compatibility"""
         try:
-            self.client = AsyncIOMotorClient(self.settings.MONGODB_URL)
-            self.database = self.client[self.settings.DATABASE_NAME]
+            # Get MongoDB URL from environment or settings
+            mongodb_url = os.getenv('MONGODB_URL', self.settings.MONGODB_URL)
+            
+            logger.info(f"Connecting to MongoDB... (URL length: {len(mongodb_url)})")
+            
+            # Validate URL format
+            if not mongodb_url or mongodb_url == "mongodb://localhost:27017":
+                raise ValueError(
+                    "MongoDB Atlas connection string required for production. "
+                    "Set MONGODB_URL environment variable with format: "
+                    "mongodb+srv://username:password@cluster.mongodb.net/dbname"
+                )
+            
+            # Create client with serverless-friendly settings
+            self.client = AsyncIOMotorClient(
+                mongodb_url,
+                serverSelectionTimeoutMS=5000,  # 5 second timeout
+                connectTimeoutMS=10000,
+                socketTimeoutMS=10000,
+                maxPoolSize=10,  # Limit connections for serverless
+                minPoolSize=1,
+                retryWrites=True,
+                w='majority'
+            )
+            
+            # Get database name
+            db_name = os.getenv('DATABASE_NAME', self.settings.DATABASE_NAME)
+            self.database = self.client[db_name]
+            
+            # Test connection with ping
             await self.client.admin.command('ping')
+            
+            # Create indexes
             await self._create_indexes()
-            logger.info("Connected to MongoDB successfully")
+            
+            logger.info(f"✅ Connected to MongoDB successfully (Database: {db_name})")
+            
+        except ServerSelectionTimeoutError as e:
+            logger.error(f"❌ MongoDB connection timeout: {str(e)}")
+            logger.error("Check: 1) Internet connection, 2) MongoDB Atlas whitelist, 3) Correct credentials")
+            raise Exception(f"Failed to connect to MongoDB: {str(e)}")
+            
         except Exception as e:
-            logger.error(f"Failed to connect to MongoDB: {str(e)}")
-            raise
+            logger.error(f"❌ MongoDB connection error: {str(e)}")
+            raise Exception(f"Database connection failed: {str(e)}")
     
     async def close(self):
+        """Close MongoDB connection"""
         if self.client:
             self.client.close()
-            logger.info("Disconnected from MongoDB")
+            logger.info("MongoDB connection closed")
     
     async def _create_indexes(self):
+        """Create database indexes"""
         try:
+            # User indexes
             await self.database.users.create_index("email", unique=True)
             await self.database.users.create_index("created_at")
-            await self.database.recipes.create_index("user_id")
-            await self.database.recipes.create_index("created_at")
+            
+            # Recipe history indexes
             await self.database.recipe_history.create_index("user_id")
             await self.database.recipe_history.create_index("created_at")
             await self.database.recipe_history.create_index([("user_id", 1), ("created_at", -1)])
-            logger.info("Database indexes created successfully")
+            
+            # Favorites indexes
+            await self.database.favorites.create_index([("user_id", 1), ("recipe_id", 1)], unique=True)
+            
+            # Mood logs indexes
+            await self.database.mood_logs.create_index([("user_id", 1), ("timestamp", -1)])
+            
+            logger.info("✅ Database indexes created successfully")
+            
         except Exception as e:
-            logger.error(f"Error creating indexes: {str(e)}")
+            logger.warning(f"Index creation warning (may already exist): {str(e)}")
+    
+    async def health_check(self) -> bool:
+        """Check if database is accessible"""
+        try:
+            await self.client.admin.command('ping')
+            return True
+        except Exception as e:
+            logger.error(f"Database health check failed: {e}")
+            return False
+    
+    # [Keep all your existing methods: create_user, get_user_by_email, etc.]
+    # Just copy them here - they don't need changes
     
     async def create_user(self, user_data: Dict[str, Any]) -> Dict[str, Any]:
         try:
@@ -133,7 +195,7 @@ class MongoDB:
             recipe_ids = [ObjectId(doc["recipe_id"]) for doc in favorite_docs]
             if not recipe_ids:
                 return []
-            recipe_cursor = self.database.recipes.find({"_id": {"$in": recipe_ids}})
+            recipe_cursor = self.database.recipe_history.find({"_id": {"$in": recipe_ids}})
             return await recipe_cursor.to_list(length=None)
         except Exception as e:
             logger.error(f"Error getting favorite recipes: {str(e)}")
@@ -205,8 +267,27 @@ class MongoDB:
             logger.error(f"Error getting ingredient usage stats: {str(e)}")
             raise
 
+# Global database instance for serverless
+_db_instance = None
+
 async def get_database() -> MongoDB:
-    db = MongoDB()
-    if not db.client:
-        await db.connect()
-    return db
+    """Get or create database instance (serverless-friendly)"""
+    global _db_instance
+    
+    if _db_instance is None:
+        _db_instance = MongoDB()
+        await _db_instance.connect()
+    
+    # Verify connection is still alive
+    try:
+        is_healthy = await _db_instance.health_check()
+        if not is_healthy:
+            logger.warning("Database connection unhealthy, reconnecting...")
+            _db_instance = MongoDB()
+            await _db_instance.connect()
+    except Exception as e:
+        logger.error(f"Health check failed: {e}, reconnecting...")
+        _db_instance = MongoDB()
+        await _db_instance.connect()
+    
+    return _db_instance

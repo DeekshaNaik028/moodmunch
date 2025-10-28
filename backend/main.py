@@ -698,7 +698,50 @@ async def custom_exception_handler(request, exc: CustomException):
         "error_code": exc.error_code,
         "timestamp": exc.timestamp.isoformat()
     }
+# ADD THIS TO backend/main.py - Replace existing health check
 
+@app.get("/health")
+async def health_check(db: MongoDB = Depends(get_database)):
+    """System health check with detailed diagnostics"""
+    try:
+        # Check database connection
+        db_healthy = await db.health_check()
+        
+        # Check AI services
+        gemini_configured = bool(settings.GEMINI_API_KEY and settings.GEMINI_API_KEY != "your-gemini-api-key-here")
+        
+        return {
+            "status": "healthy" if db_healthy else "degraded",
+            "timestamp": datetime.utcnow().isoformat(),
+            "version": "2.0.0",
+            "checks": {
+                "database": "connected" if db_healthy else "disconnected",
+                "gemini_ai": "configured" if gemini_configured else "not_configured",
+                "voice_input": settings.ENABLE_VOICE_INPUT
+            },
+            "features": {
+                "voice_input": settings.ENABLE_VOICE_INPUT,
+                "recipe_generation": gemini_configured,
+                "user_authentication": True
+            },
+            "environment": {
+                "debug": settings.DEBUG,
+                "environment": settings.ENVIRONMENT,
+                "allowed_origins": len(settings.ALLOWED_ORIGINS)
+            }
+        }
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        return {
+            "status": "unhealthy",
+            "timestamp": datetime.utcnow().isoformat(),
+            "error": str(e)
+        }
+
+@app.get("/api/health")  # Add alternate path for Vercel
+async def api_health_check(db: MongoDB = Depends(get_database)):
+    """Health check on /api path"""
+    return await health_check(db)
 if __name__ == "__main__":
     uvicorn.run(
         "main:app",

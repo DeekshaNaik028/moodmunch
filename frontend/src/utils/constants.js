@@ -1,4 +1,6 @@
-export const API_BASE = 'http://localhost:8000';
+export const API_BASE = process.env.NODE_ENV === 'production' 
+  ? 'https://moodmunch-kfzh.vercel.app/'  // Your Vercel backend URL
+  : 'http://localhost:8000';
 
 export const MOODS = [
   { value: 'happy', emoji: '😊', label: 'Happy' },
