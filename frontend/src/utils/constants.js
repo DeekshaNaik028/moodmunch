@@ -1,5 +1,6 @@
+// FIXED: Removed trailing slash from production URL
 export const API_BASE = process.env.NODE_ENV === 'production' 
-  ? 'https://moodmunch-kfzh.vercel.app/'  // Your Vercel backend URL
+  ? 'https://moodmunch-kfzh.vercel.app'  // ✅ NO trailing slash
   : 'http://localhost:8000';
 
 export const MOODS = [
@@ -27,3 +28,6 @@ export const HEALTH_GOALS = [
   'weight_loss', 'muscle_gain', 'maintain_weight', 
   'heart_health', 'diabetes_management', 'balanced_diet', 'energy_boost'
 ];
+
+// API timeout settings
+export const API_TIMEOUT = 30000; // 30 seconds

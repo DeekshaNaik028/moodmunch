@@ -1,4 +1,4 @@
-# backend/app/database/mongodb.py - SERVERLESS VERSION
+# backend/app/database/mongodb.py - SERVERLESS OPTIMIZED VERSION
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import DuplicateKeyError, ServerSelectionTimeoutError
 from bson import ObjectId
@@ -33,14 +33,15 @@ class MongoDB:
                     "mongodb+srv://username:password@cluster.mongodb.net/dbname"
                 )
             
-            # Create client with serverless-friendly settings
+            # SERVERLESS OPTIMIZED: Minimal connection pooling
             self.client = AsyncIOMotorClient(
                 mongodb_url,
-                serverSelectionTimeoutMS=5000,  # 5 second timeout
+                serverSelectionTimeoutMS=5000,
                 connectTimeoutMS=10000,
                 socketTimeoutMS=10000,
-                maxPoolSize=10,  # Limit connections for serverless
-                minPoolSize=1,
+                maxPoolSize=1,  # Serverless: Use 1 connection per instance
+                minPoolSize=0,   # Allow zero when idle
+                maxIdleTimeMS=30000,  # Close idle connections after 30s
                 retryWrites=True,
                 w='majority'
             )
@@ -103,9 +104,6 @@ class MongoDB:
         except Exception as e:
             logger.error(f"Database health check failed: {e}")
             return False
-    
-    # [Keep all your existing methods: create_user, get_user_by_email, etc.]
-    # Just copy them here - they don't need changes
     
     async def create_user(self, user_data: Dict[str, Any]) -> Dict[str, Any]:
         try:

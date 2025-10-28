@@ -68,8 +68,7 @@ class VoiceIngredientService:
     
     async def transcribe_and_extract_ingredients(self, audio_file_path: str) -> List[str]:
         """
-        Extract ingredients from audio file
-        CRITICAL FIX: Using synchronous API call in async context properly
+        Extract ingredients from audio file with timeout
         """
         try:
             if not self.initialized:
@@ -105,17 +104,20 @@ class VoiceIngredientService:
             - Separate with commas
             """
             
-            # Run in executor to avoid blocking
+            # Run in executor with timeout
             loop = asyncio.get_event_loop()
-            response = await loop.run_in_executor(
-                None,
-                lambda: self.model.generate_content(
-                    [prompt, {"mime_type": mime_type, "data": audio_data}],
-                    generation_config=genai.types.GenerationConfig(
-                        temperature=0.1,
-                        max_output_tokens=500
+            response = await asyncio.wait_for(
+                loop.run_in_executor(
+                    None,
+                    lambda: self.model.generate_content(
+                        [prompt, {"mime_type": mime_type, "data": audio_data}],
+                        generation_config=genai.types.GenerationConfig(
+                            temperature=0.1,
+                            max_output_tokens=500
+                        )
                     )
-                )
+                ),
+                timeout=30.0  # 30 second timeout
             )
             
             if not response or not response.text:
@@ -130,12 +132,15 @@ class VoiceIngredientService:
             logger.info(f"Extracted: {ingredients}")
             return ingredients
             
+        except asyncio.TimeoutError:
+            logger.error("Audio extraction timeout")
+            raise Exception("Audio processing timed out. Please try a shorter recording.")
         except Exception as e:
             logger.error(f"Audio extraction error: {str(e)}")
             raise Exception(f"Failed to process audio: {str(e)}")
     
     async def extract_from_text(self, text: str) -> List[str]:
-        """Extract ingredients from text input"""
+        """Extract ingredients from text input with timeout"""
         try:
             if not text or len(text.strip()) < 2:
                 raise Exception("Text too short")
@@ -148,21 +153,27 @@ class VoiceIngredientService:
             No extra text."""
             
             loop = asyncio.get_event_loop()
-            response = await loop.run_in_executor(
-                None,
-                lambda: self.model.generate_content(
-                    prompt,
-                    generation_config=genai.types.GenerationConfig(
-                        temperature=0.1,
-                        max_output_tokens=300
+            response = await asyncio.wait_for(
+                loop.run_in_executor(
+                    None,
+                    lambda: self.model.generate_content(
+                        prompt,
+                        generation_config=genai.types.GenerationConfig(
+                            temperature=0.1,
+                            max_output_tokens=300
+                        )
                     )
-                )
+                ),
+                timeout=15.0  # 15 second timeout for text
             )
             
             ingredients = self._parse_ingredient_response(response.text)
             logger.info(f"Text extraction: {ingredients}")
             return ingredients
             
+        except asyncio.TimeoutError:
+            logger.error("Text extraction timeout")
+            return self._simple_text_extraction(text)
         except Exception as e:
             logger.error(f"Text extraction error: {str(e)}")
             return self._simple_text_extraction(text)
@@ -228,5 +239,3 @@ class VoiceIngredientService:
             "original_count": len(ingredients),
             "validated_count": len(validated)
         }
-
-

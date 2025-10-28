@@ -32,25 +32,11 @@ aiofiles==23.2.1
 # HTTP Requests (Required)
 httpx==0.26.0
 
-# ==========================================
-# OPTIONAL DEPENDENCIES
-# ==========================================
-
-# Date & Time utilities (Optional but useful)
+# Date & Time utilities
 python-dateutil==2.8.2
 
-# Logging (Optional)
+# Logging
 python-json-logger==2.0.7
 
-# ==========================================
-# NOTES
-# ==========================================
-# CORS: Built into FastAPI (no separate package needed)
-# Audio Processing: Handled by Gemini AI (no pydub/SpeechRecognition needed)
-# Image Processing: Not needed (no Pillow required)
-
-# ==========================================
-# TESTING (Optional - Uncomment if needed)
-# ==========================================
-# pytest==7.4.4
-# pytest-asyncio==0.23.3
+# Mangum for Vercel serverless (NEW)
+mangum==0.17.0
