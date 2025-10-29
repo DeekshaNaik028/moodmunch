@@ -1,7 +1,9 @@
 # backend/main.py - SERVERLESS OPTIMIZED
-from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, status
+from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 import logging
 from datetime import datetime
 import os
@@ -62,22 +64,29 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# CORS Configuration - FIXED for Production
-allowed_origins = settings.ALLOWED_ORIGINS if hasattr(settings, 'ALLOWED_ORIGINS') else [
-    "https://moodmunch.vercel.app",
-    "http://localhost:3000",
-    "http://localhost:3001"
-]
-
+# CORS Configuration - CRITICAL FIX
+# Vercel needs explicit CORS handling
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=[
+        "https://moodmunch.vercel.app",
+        "https://*.vercel.app",  # Allow all Vercel preview deployments
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000"
+    ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
     expose_headers=["*"],
     max_age=3600,
 )
+
+# Add OPTIONS handler for preflight requests
+@app.options("/{path:path}")
+async def options_handler(path: str):
+    """Handle CORS preflight requests"""
+    return {"status": "ok"}
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Verify JWT token and return user ID"""

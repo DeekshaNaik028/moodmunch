@@ -1,3 +1,4 @@
+/* frontend/src/styles/index.css - ENHANCED MOBILE RESPONSIVE */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,19 +8,13 @@
     @apply transition-colors duration-300;
   }
   
-  /* Prevent zoom on input focus on mobile */
-  @media screen and (max-width: 768px) {
-    input[type="text"],
-    input[type="email"],
-    input[type="password"],
-    select,
-    textarea {
-      font-size: 16px !important;
-    }
+  /* Prevent horizontal scroll on mobile */
+  html, body {
+    @apply overflow-x-hidden;
   }
   
-  /* Safe area for devices with notch */
-  .safe-area-bottom {
+  /* Safe area for mobile devices (notch support) */
+  .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
@@ -37,33 +32,47 @@
     @apply bg-gradient-to-br from-pink-50 to-purple-50 dark:from-gray-800 dark:to-gray-900;
   }
   
-  /* Mobile-friendly scrollbar */
+  /* Mobile-optimized touch targets */
   @media (max-width: 768px) {
+    button, a {
+      @apply min-h-[44px]; /* iOS recommended touch target */
+    }
+  }
+  
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Custom scrollbar for desktop */
+  @media (min-width: 1024px) {
     ::-webkit-scrollbar {
-      width: 4px;
+      width: 8px;
     }
     
     ::-webkit-scrollbar-track {
-      @apply bg-transparent;
+      @apply bg-gray-100 dark:bg-gray-900;
     }
     
     ::-webkit-scrollbar-thumb {
-      @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+      @apply bg-pink-400 dark:bg-pink-600 rounded-full;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      @apply bg-pink-500 dark:bg-pink-500;
     }
   }
-  
-  /* Touch-friendly tap targets */
-  button, a, input, select {
-    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+}
+
+@layer utilities {
+  /* Line clamp utilities for text truncation */
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   
-  /* Smooth scroll on mobile */
-  html {
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  /* Line clamp utilities */
   .line-clamp-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -77,24 +86,10 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-}
-
-@layer utilities {
-  /* Hide scrollbar but keep functionality */
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
   
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-  
-  /* Mobile-specific utilities */
-  @media (max-width: 640px) {
-    .mobile-full-width {
-      width: 100vw;
-      margin-left: calc(-50vw + 50%);
-    }
+  /* Prevent text selection on buttons */
+  button {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
   }
 }

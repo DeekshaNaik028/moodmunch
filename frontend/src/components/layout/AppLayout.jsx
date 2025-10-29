@@ -1,6 +1,8 @@
+// frontend/src/components/layout/AppLayout.jsx - FIXED VERSION
 import React, { useState } from 'react';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
+import { BottomNav } from './BottomNav';
 import HomePage from '../../pages/HomePage';
 import GenerateRecipePage from '../../pages/GenerateRecipePage';
 import HistoryPage from '../../pages/HistoryPage';
@@ -35,10 +37,11 @@ export const AppLayout = () => {
       <Header />
       <div className="flex max-w-7xl mx-auto">
         <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} />
-        <main className="flex-1 p-3 sm:p-4 lg:p-8">
+        <main className="flex-1 p-4 lg:p-8">
           {renderPage()}
         </main>
       </div>
+      <BottomNav currentPage={currentPage} setCurrentPage={setCurrentPage} />
     </div>
   );
 };
