@@ -42,7 +42,6 @@ const GenerateRecipePage = () => {
         servings: 2,
       });
       setRecipe(result);
-      // Get the recipe ID from history after generation
       const history = await api.recipes.getHistory(1);
       if (history.recipes && history.recipes.length > 0) {
         setRecipeId(history.recipes[0]._id);
@@ -68,31 +67,31 @@ const GenerateRecipePage = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 max-w-4xl mx-auto">
       <Card>
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white mb-4 sm:mb-6">
           Add Your Ingredients
         </h2>
 
-        <div className="grid md:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
           <VoiceInput onIngredientsExtracted={handleIngredientsExtracted} />
           <TextInput onIngredientsExtracted={handleIngredientsExtracted} />
         </div>
 
         <IngredientList ingredients={ingredients} onRemove={removeIngredient} />
 
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <MoodSelector selectedMood={mood} onMoodChange={setMood} />
         </div>
 
-        <div className="mb-6">
-          <h3 className="font-semibold text-gray-800 dark:text-white mb-3">
+        <div className="mb-4 sm:mb-6">
+          <h3 className="font-semibold text-gray-800 dark:text-white mb-3 text-sm sm:text-base">
             Cuisine Preference
           </h3>
           <select
             value={cuisine}
             onChange={(e) => setCuisine(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-800 outline-none"
+            className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-800 outline-none text-sm sm:text-base"
           >
             {CUISINES.map((c) => (
               <option key={c} value={c}>
@@ -107,7 +106,7 @@ const GenerateRecipePage = () => {
           loading={loading}
           disabled={ingredients.length === 0}
           icon={Sparkles}
-          className="w-full"
+          className="w-full text-sm sm:text-base"
         >
           Generate Recipe
         </Button>
