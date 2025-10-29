@@ -62,13 +62,21 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# CORS Configuration
+# CORS Configuration - FIXED for Production
+allowed_origins = settings.ALLOWED_ORIGINS if hasattr(settings, 'ALLOWED_ORIGINS') else [
+    "https://moodmunch.vercel.app",
+    "http://localhost:3000",
+    "http://localhost:3001"
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, restrict this
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):

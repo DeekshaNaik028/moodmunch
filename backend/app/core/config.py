@@ -1,11 +1,12 @@
 from pydantic_settings import BaseSettings
 from typing import List
 from functools import lru_cache
+import os
 
 class Settings(BaseSettings):
     # Application Settings
     APP_NAME: str = "AI Recipe Recommendation System"
-    VERSION: str = "2.0.0"  # Updated version
+    VERSION: str = "2.0.0"
     DEBUG: bool = False
     ENVIRONMENT: str = "development"
     
@@ -19,12 +20,18 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     
-    # CORS Settings
+    # CORS Settings - FIXED
     ALLOWED_ORIGINS_STR: str = "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000"
     
     @property
     def ALLOWED_ORIGINS(self) -> List[str]:
-        return [origin.strip() for origin in self.ALLOWED_ORIGINS_STR.split(",")]
+        """Parse ALLOWED_ORIGINS_STR into a list"""
+        origins_str = os.getenv('ALLOWED_ORIGINS_STR', self.ALLOWED_ORIGINS_STR)
+        if origins_str:
+            origins = [origin.strip() for origin in origins_str.split(",") if origin.strip()]
+            print(f"✅ CORS allowed origins: {origins}")  # Debug log
+            return origins
+        return []
     
     # Database Settings
     MONGODB_URL: str = "mongodb://localhost:27017"
@@ -33,7 +40,7 @@ class Settings(BaseSettings):
     # AI Model Settings
     GEMINI_API_KEY: str = "your-gemini-api-key-here"
     
-    # Voice Input Settings (NEW)
+    # Voice Input Settings
     ENABLE_VOICE_INPUT: bool = True
     MAX_AUDIO_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB
     SUPPORTED_AUDIO_FORMATS: List[str] = ["wav", "mp3", "ogg", "webm", "m4a"]
@@ -41,7 +48,7 @@ class Settings(BaseSettings):
     
     # Model Configuration
     MODEL_CONFIDENCE_THRESHOLD: float = 0.5
-    MAX_INGREDIENTS_DETECTED: int = 15  # Increased for voice input
+    MAX_INGREDIENTS_DETECTED: int = 15
     MAX_RECIPE_GENERATION_RETRIES: int = 3
     
     # File Upload Settings
