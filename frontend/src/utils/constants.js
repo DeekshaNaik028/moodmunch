@@ -1,6 +1,6 @@
 // FIXED: Removed trailing slash from production URL
 export const API_BASE = process.env.NODE_ENV === 'production' 
-  ? 'https://moodmunch-backend.vercel.app'  // ✅ NO trailing slash
+  ? 'https://moodmunchbackend.vercel.app'  // ✅ NO trailing slash
   : 'http://localhost:8000';
 
 export const MOODS = [
