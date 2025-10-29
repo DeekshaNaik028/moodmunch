@@ -42,16 +42,13 @@ const GenerateRecipePage = () => {
         cuisine_preference: cuisine,
         servings: 2,
       });
-      
-      console.log('Generated recipe:', result);
       setRecipe(result);
       
       // Get the recipe ID from history after generation
       const history = await api.recipes.getHistory(1);
       if (history.recipes && history.recipes.length > 0) {
-        const latestRecipeId = history.recipes[0]._id;
-        console.log('Latest recipe ID:', latestRecipeId);
-        setRecipeId(latestRecipeId);
+        console.log('GeneratePage: Setting recipeId:', history.recipes[0]._id);
+        setRecipeId(history.recipes[0]._id);
       }
     } catch (err) {
       alert(err.message);
@@ -74,32 +71,32 @@ const GenerateRecipePage = () => {
   }
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Card>
-        <h2 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-white mb-4 md:mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white mb-4 sm:mb-6">
           Add Your Ingredients
         </h2>
 
-        {/* Mobile: Stack vertically, Desktop: Side by side */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-4 md:mb-6">
+        {/* Voice & Text Input - Stack on Mobile */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
           <VoiceInput onIngredientsExtracted={handleIngredientsExtracted} />
           <TextInput onIngredientsExtracted={handleIngredientsExtracted} />
         </div>
 
         <IngredientList ingredients={ingredients} onRemove={removeIngredient} />
 
-        <div className="mb-4 md:mb-6">
+        <div className="mb-4 sm:mb-6">
           <MoodSelector selectedMood={mood} onMoodChange={setMood} />
         </div>
 
-        <div className="mb-4 md:mb-6">
-          <h3 className="font-semibold text-gray-800 dark:text-white mb-3">
+        <div className="mb-4 sm:mb-6">
+          <h3 className="font-semibold text-gray-800 dark:text-white mb-3 text-sm sm:text-base">
             Cuisine Preference
           </h3>
           <select
             value={cuisine}
             onChange={(e) => setCuisine(e.target.value)}
-            className="w-full px-3 md:px-4 py-2 md:py-3 text-sm md:text-base rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-800 outline-none"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-800 outline-none text-sm sm:text-base"
           >
             {CUISINES.map((c) => (
               <option key={c} value={c}>

@@ -1,8 +1,7 @@
-// frontend/src/components/layout/AppLayout.jsx - FIXED VERSION
+// frontend/src/components/layout/AppLayout.jsx - MOBILE FIXED
 import React, { useState } from 'react';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
-import { BottomNav } from './BottomNav';
 import HomePage from '../../pages/HomePage';
 import GenerateRecipePage from '../../pages/GenerateRecipePage';
 import HistoryPage from '../../pages/HistoryPage';
@@ -41,7 +40,6 @@ export const AppLayout = () => {
           {renderPage()}
         </main>
       </div>
-      <BottomNav currentPage={currentPage} setCurrentPage={setCurrentPage} />
     </div>
   );
 };
