@@ -1,4 +1,4 @@
-// frontend/src/pages/ProfilePage.jsx - MOBILE RESPONSIVE VERSION
+// frontend/src/pages/ProfilePage.jsx - FULLY RESPONSIVE VERSION
 import React, { useState, useEffect } from 'react';
 import { User, Edit2, Save, X, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -94,37 +94,38 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full max-w-4xl mx-auto px-2 sm:px-0">
       {/* Success Banner */}
       {showSuccess && (
-        <div className="mb-4 md:mb-6 bg-green-100 dark:bg-green-900/30 border-2 border-green-500 dark:border-green-600 rounded-xl md:rounded-2xl p-3 md:p-4 flex items-center gap-3 animate-fade-in">
-          <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400 flex-shrink-0" />
+        <div className="mb-3 md:mb-6 bg-green-100 dark:bg-green-900/30 border-2 border-green-500 dark:border-green-600 rounded-xl p-3 flex items-center gap-2 animate-fade-in">
+          <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm md:text-base text-green-800 dark:text-green-300">
-              Profile Updated Successfully!
+            <p className="font-semibold text-sm text-green-800 dark:text-green-300">
+              Profile Updated!
             </p>
-            <p className="text-xs md:text-sm text-green-700 dark:text-green-400">
+            <p className="text-xs text-green-700 dark:text-green-400">
               Your changes have been saved.
             </p>
           </div>
         </div>
       )}
 
-      <h2 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-4 md:mb-6">
+      <h2 className="text-xl md:text-3xl font-bold text-gray-800 dark:text-white mb-3 md:mb-6 px-2 sm:px-0">
         Profile
       </h2>
 
-      <Card>
-        <div className="flex items-start md:items-center justify-between mb-6 gap-3">
-          <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
-            <div className="w-14 h-14 md:w-20 md:h-20 gradient-primary rounded-full flex items-center justify-center text-white text-2xl md:text-3xl font-bold flex-shrink-0">
+      <Card className="mx-2 sm:mx-0">
+        {/* Profile Header */}
+        <div className="flex items-center justify-between mb-4 md:mb-6 gap-2">
+          <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
+            <div className="w-12 h-12 md:w-16 md:h-16 lg:w-20 lg:h-20 gradient-primary rounded-full flex items-center justify-center text-white text-xl md:text-2xl lg:text-3xl font-bold flex-shrink-0">
               {user.name?.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="text-lg md:text-2xl font-bold text-gray-800 dark:text-white truncate">
+              <h3 className="text-base md:text-xl lg:text-2xl font-bold text-gray-800 dark:text-white truncate">
                 {user.name}
               </h3>
-              <p className="text-xs md:text-base text-gray-600 dark:text-gray-400 truncate">
+              <p className="text-xs md:text-sm lg:text-base text-gray-600 dark:text-gray-400 truncate">
                 {user.email}
               </p>
             </div>
@@ -134,40 +135,47 @@ const ProfilePage = () => {
               onClick={() => setEditing(true)}
               icon={Edit2}
               variant="outline"
-              className="flex-shrink-0 px-3 py-2 md:px-6 md:py-3"
+              className="flex-shrink-0 text-xs md:text-sm px-2 py-1.5 md:px-4 md:py-2"
             >
-              <span className="hidden sm:inline">Edit Profile</span>
-              <span className="sm:hidden">Edit</span>
+              <span className="hidden sm:inline">Edit</span>
+              <Edit2 className="w-4 h-4 sm:hidden" />
             </Button>
           )}
         </div>
 
         {editing ? (
-          <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
-            <Input
-              label="Name"
-              type="text"
-              value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
-              required
-            />
-
+          <form onSubmit={handleSubmit} className="space-y-3 md:space-y-5">
+            {/* Name Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 md:mb-3">
+              <label className="block text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                Name
+              </label>
+              <Input
+                type="text"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                required
+                className="text-sm md:text-base py-2 md:py-3"
+              />
+            </div>
+
+            {/* Dietary Preferences */}
+            <div>
+              <label className="block text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Dietary Preferences
               </label>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 md:gap-2">
                 {DIETARY_PREFERENCES.map((pref) => (
                   <button
                     key={pref}
                     type="button"
                     onClick={() => toggleDietaryPreference(pref)}
-                    className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all ${
+                    className={`px-2 py-1 md:px-3 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium transition-all ${
                       formData.dietary_preferences.includes(pref)
-                        ? 'gradient-primary text-white shadow-lg'
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
+                        ? 'gradient-primary text-white shadow-md'
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
                     }`}
                   >
                     {pref.replace('_', ' ')}
@@ -176,66 +184,68 @@ const ProfilePage = () => {
               </div>
             </div>
 
+            {/* Allergies */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 md:mb-3">
+              <label className="block text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Allergies
               </label>
-              <div className="flex gap-2 mb-3">
+              <div className="flex gap-1.5 md:gap-2 mb-2">
                 <Input
                   type="text"
                   value={newAllergy}
                   onChange={(e) => setNewAllergy(e.target.value)}
-                  placeholder="Add an allergy"
+                  placeholder="Add allergy"
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
                       addAllergy();
                     }
                   }}
-                  className="text-sm md:text-base"
+                  className="text-xs md:text-sm py-2"
                 />
                 <Button 
                   type="button" 
                   onClick={addAllergy} 
                   variant="primary"
-                  className="px-4 md:px-6"
+                  className="px-3 md:px-4 text-xs md:text-sm"
                 >
                   Add
                 </Button>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {formData.allergies.map((allergy, idx) => (
                   <span
                     key={idx}
-                    className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-medium flex items-center gap-2"
+                    className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 px-2 py-1 md:px-3 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium flex items-center gap-1.5 max-w-full"
                   >
-                    <span className="truncate max-w-[150px]">{allergy}</span>
+                    <span className="truncate">{allergy}</span>
                     <button
                       type="button"
                       onClick={() => removeAllergy(allergy)}
                       className="hover:text-red-600 dark:hover:text-red-400 flex-shrink-0"
                     >
-                      <X className="w-3 h-3 md:w-4 md:h-4" />
+                      <X className="w-3 h-3" />
                     </button>
                   </span>
                 ))}
               </div>
             </div>
 
+            {/* Health Goals */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 md:mb-3">
+              <label className="block text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Health Goals
               </label>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 md:gap-2">
                 {HEALTH_GOALS.map((goal) => (
                   <button
                     key={goal}
                     type="button"
                     onClick={() => toggleHealthGoal(goal)}
-                    className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all ${
+                    className={`px-2 py-1 md:px-3 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium transition-all ${
                       formData.health_goals.includes(goal)
-                        ? 'gradient-primary text-white shadow-lg'
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
+                        ? 'gradient-primary text-white shadow-md'
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
                     }`}
                   >
                     {goal.replace('_', ' ')}
@@ -244,12 +254,13 @@ const ProfilePage = () => {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 md:gap-4 pt-2">
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-2 md:gap-3 pt-2">
               <Button
                 type="submit"
                 loading={loading}
                 icon={Save}
-                className="flex-1 order-2 sm:order-1"
+                className="flex-1 order-2 sm:order-1 text-sm md:text-base py-2 md:py-3"
               >
                 Save Changes
               </Button>
@@ -266,79 +277,81 @@ const ProfilePage = () => {
                 }}
                 variant="secondary"
                 icon={X}
-                className="flex-1 order-1 sm:order-2"
+                className="flex-1 order-1 sm:order-2 text-sm md:text-base py-2 md:py-3"
               >
                 Cancel
               </Button>
             </div>
           </form>
         ) : (
-          <div className="space-y-4 md:space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-              <div className="gradient-card rounded-xl p-3 md:p-4">
-                <h4 className="font-semibold text-sm md:text-base text-gray-800 dark:text-white mb-2 md:mb-3 flex items-center gap-2">
-                  <User className="w-4 h-4 md:w-5 md:h-5" />
-                  Dietary Preferences
-                </h4>
-                <div className="flex flex-wrap gap-1.5 md:gap-2">
-                  {formData.dietary_preferences.length > 0 ? (
-                    formData.dietary_preferences.map((pref, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2.5 py-1 md:px-3 md:py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full text-xs md:text-sm font-medium"
-                      >
-                        {pref.replace('_', ' ')}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-gray-500 dark:text-gray-400 text-xs md:text-sm">
-                      None set
+          /* View Mode */
+          <div className="space-y-3 md:space-y-4">
+            {/* Dietary Preferences Card */}
+            <div className="gradient-card rounded-lg md:rounded-xl p-3 md:p-4">
+              <h4 className="font-semibold text-sm md:text-base text-gray-800 dark:text-white mb-2 flex items-center gap-2">
+                <User className="w-4 h-4 md:w-5 md:h-5" />
+                Dietary Preferences
+              </h4>
+              <div className="flex flex-wrap gap-1.5">
+                {formData.dietary_preferences.length > 0 ? (
+                  formData.dietary_preferences.map((pref, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2 py-0.5 md:px-2.5 md:py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full text-[10px] md:text-xs font-medium"
+                    >
+                      {pref.replace('_', ' ')}
                     </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="gradient-card rounded-xl p-3 md:p-4">
-                <h4 className="font-semibold text-sm md:text-base text-gray-800 dark:text-white mb-2 md:mb-3 flex items-center gap-2">
-                  <User className="w-4 h-4 md:w-5 md:h-5" />
-                  Allergies
-                </h4>
-                <div className="flex flex-wrap gap-1.5 md:gap-2">
-                  {formData.allergies.length > 0 ? (
-                    formData.allergies.map((allergy, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2.5 py-1 md:px-3 md:py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded-full text-xs md:text-sm font-medium truncate max-w-full"
-                      >
-                        {allergy}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-gray-500 dark:text-gray-400 text-xs md:text-sm">
-                      None set
-                    </span>
-                  )}
-                </div>
+                  ))
+                ) : (
+                  <span className="text-gray-500 dark:text-gray-400 text-xs">
+                    None set
+                  </span>
+                )}
               </div>
             </div>
 
-            <div className="gradient-card rounded-xl p-3 md:p-4">
-              <h4 className="font-semibold text-sm md:text-base text-gray-800 dark:text-white mb-2 md:mb-3 flex items-center gap-2">
+            {/* Allergies Card */}
+            <div className="gradient-card rounded-lg md:rounded-xl p-3 md:p-4">
+              <h4 className="font-semibold text-sm md:text-base text-gray-800 dark:text-white mb-2 flex items-center gap-2">
+                <User className="w-4 h-4 md:w-5 md:h-5" />
+                Allergies
+              </h4>
+              <div className="flex flex-wrap gap-1.5">
+                {formData.allergies.length > 0 ? (
+                  formData.allergies.map((allergy, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2 py-0.5 md:px-2.5 md:py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded-full text-[10px] md:text-xs font-medium truncate max-w-full"
+                    >
+                      {allergy}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-gray-500 dark:text-gray-400 text-xs">
+                    None set
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Health Goals Card */}
+            <div className="gradient-card rounded-lg md:rounded-xl p-3 md:p-4">
+              <h4 className="font-semibold text-sm md:text-base text-gray-800 dark:text-white mb-2 flex items-center gap-2">
                 <User className="w-4 h-4 md:w-5 md:h-5" />
                 Health Goals
               </h4>
-              <div className="flex flex-wrap gap-1.5 md:gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {formData.health_goals.length > 0 ? (
                   formData.health_goals.map((goal, idx) => (
                     <span
                       key={idx}
-                      className="px-2.5 py-1 md:px-3 md:py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full text-xs md:text-sm font-medium"
+                      className="px-2 py-0.5 md:px-2.5 md:py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full text-[10px] md:text-xs font-medium"
                     >
                       {goal.replace('_', ' ')}
                     </span>
                   ))
                 ) : (
-                  <span className="text-gray-500 dark:text-gray-400 text-xs md:text-sm">
+                  <span className="text-gray-500 dark:text-gray-400 text-xs">
                     None set
                   </span>
                 )}
