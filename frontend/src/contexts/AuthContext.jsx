@@ -1,3 +1,4 @@
+// frontend/src/contexts/AuthContext.jsx - FIXED VERSION
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
@@ -29,11 +30,21 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = (tokenData, userData) => {
+    // Handle both full user object and just the user data
+    const userToStore = userData.id ? userData : {
+      id: userData._id || userData.id,
+      email: userData.email,
+      name: userData.name,
+      dietary_preferences: userData.dietary_preferences || [],
+      allergies: userData.allergies || [],
+      health_goals: userData.health_goals || [],
+    };
+
     setToken(tokenData);
-    setUser(userData);
+    setUser(userToStore);
     setIsAuthenticated(true);
     localStorage.setItem('token', tokenData);
-    localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('user', JSON.stringify(userToStore));
   };
 
   const logout = () => {
@@ -44,6 +55,16 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('user');
   };
 
+  // Add updateUser function to update user data without re-authentication
+  const updateUser = (userData) => {
+    const updatedUser = {
+      ...user,
+      ...userData,
+    };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
+
   return (
     <AuthContext.Provider value={{ 
       isAuthenticated, 
@@ -51,6 +72,7 @@ export const AuthProvider = ({ children }) => {
       token, 
       login, 
       logout, 
+      updateUser,
       loading 
     }}>
       {children}
