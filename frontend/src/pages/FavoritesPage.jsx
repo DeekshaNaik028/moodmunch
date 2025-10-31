@@ -1,3 +1,4 @@
+// frontend/src/pages/FavoritesPage.jsx - FIXED VERSION
 import React, { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
 import { api } from '../services/api';
@@ -38,7 +39,7 @@ const FavoritesPage = () => {
     console.log('Favorites - Closing recipe detail');
     setSelectedRecipe(null);
     setSelectedRecipeId(null);
-    // Refresh favorites list
+    // Refresh favorites list in case something was unfavorited
     fetchFavorites();
   };
 
@@ -52,20 +53,35 @@ const FavoritesPage = () => {
         recipe={selectedRecipe}
         recipeId={selectedRecipeId}
         onClose={handleClose}
+        // CRITICAL: Tell RecipeDetail that this recipe IS favorited
+        isFavoritedProp={true}
       />
     );
   }
 
   return (
     <div>
-      <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-6">
-        Favorite Recipes
-      </h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-3xl font-bold text-gray-800 dark:text-white">
+          Favorite Recipes
+        </h2>
+        <div className="bg-pink-100 dark:bg-pink-900/30 px-4 py-2 rounded-full">
+          <span className="text-pink-600 dark:text-pink-400 font-semibold">
+            {favorites.length} {favorites.length === 1 ? 'Recipe' : 'Recipes'}
+          </span>
+        </div>
+      </div>
+      
       {favorites.length === 0 ? (
         <div className="text-center py-20">
-          <Heart className="w-20 h-20 mx-auto mb-4 text-gray-400 dark:text-gray-600" />
+          <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-pink-100 to-purple-100 dark:from-pink-900/30 dark:to-purple-900/30 rounded-full flex items-center justify-center">
+            <Heart className="w-12 h-12 text-pink-400 dark:text-pink-600" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">
+            No Favorites Yet
+          </h3>
           <p className="text-gray-600 dark:text-gray-400">
-            No favorites yet. Heart some recipes from your history!
+            Heart some recipes from your history to see them here!
           </p>
         </div>
       ) : (
