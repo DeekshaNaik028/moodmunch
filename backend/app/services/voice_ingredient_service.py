@@ -44,7 +44,7 @@ class VoiceIngredientService:
         try:
             genai.configure(api_key=self.settings.GEMINI_API_KEY)
             
-            model_options = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-exp']
+            model_options = ['gemini-2.5-flash-lite']
             
             for model_name in model_options:
                 try:

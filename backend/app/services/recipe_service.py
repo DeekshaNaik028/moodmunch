@@ -1,4 +1,4 @@
-# backend/app/services/recipe_service.py
+# backend/app/services/recipe_service.py - ENHANCED WITH MOOD MESSAGES
 import google.generativeai as genai
 import json
 import re
@@ -18,19 +18,59 @@ class RecipeService:
         self.settings = get_settings()
         self.model = None
         self.initialized = False
+        
+        # Mood-specific guidance for recipe generation
+        self.mood_guidance = {
+            MoodEnum.HAPPY: {
+                "recipe_style": "vibrant, colorful dishes that celebrate joy with bright flavors",
+                "cooking_approach": "fun to make, visually appealing",
+                "message_template": "🌟 Keep that smile shining! This {dish} is designed to celebrate your happiness with vibrant flavors and colors. Enjoy every delicious bite and let this meal remind you of all the wonderful things in life! 😊"
+            },
+            MoodEnum.SAD: {
+                "recipe_style": "warm, comforting dishes that provide emotional solace",
+                "cooking_approach": "nostalgic, soul-warming",
+                "message_template": "💙 We understand you're feeling down. This {dish} is like a warm hug for your soul - made with comforting ingredients that bring peace and warmth. Remember, better days are ahead, and sometimes the best therapy comes from a home-cooked meal. You've got this! 🤗"
+            },
+            MoodEnum.ENERGETIC: {
+                "recipe_style": "protein-rich, energizing meals that sustain vitality",
+                "cooking_approach": "quick to make, power-packed",
+                "message_template": "⚡ Channel that amazing energy! This {dish} is packed with nutrients to fuel your active lifestyle and keep you going strong. Your enthusiasm is contagious - keep spreading that positive vibe! 💪"
+            },
+            MoodEnum.TIRED: {
+                "recipe_style": "simple, nourishing dishes requiring minimal effort",
+                "cooking_approach": "easy preparation, restorative",
+                "message_template": "😴 Rest is important, and so is nourishment. This {dish} is incredibly easy to make and will help restore your energy without exhausting you further. Take it easy, enjoy this meal, and give yourself permission to rest. Tomorrow is a new day! 🌙"
+            },
+            MoodEnum.STRESSED: {
+                "recipe_style": "calming, simple dishes with soothing properties",
+                "cooking_approach": "meditative cooking process, stress-reducing",
+                "message_template": "🧘 Take a deep breath. This {dish} features calming ingredients and a therapeutic cooking process. Let the act of preparing this meal become your meditation. Remember: this too shall pass, and you're stronger than you think. 🌸"
+            },
+            MoodEnum.CALM: {
+                "recipe_style": "balanced, gentle dishes that maintain tranquility",
+                "cooking_approach": "mindful preparation, harmonious flavors",
+                "message_template": "😌 Your peaceful state is beautiful. This {dish} complements your calm energy with balanced flavors and gentle ingredients. Savor each moment of preparation and every bite - you've found your center. 🕊️"
+            },
+            MoodEnum.EXCITED: {
+                "recipe_style": "adventurous, bold dishes with exciting flavors",
+                "cooking_approach": "experimental, surprising combinations",
+                "message_template": "🤩 Your excitement is infectious! This {dish} matches your energy with bold, adventurous flavors that will thrill your taste buds. Life is an adventure, and so is cooking - enjoy this culinary journey! 🎉"
+            },
+            MoodEnum.BORED: {
+                "recipe_style": "creative, unique dishes that spark curiosity",
+                "cooking_approach": "innovative techniques, unexpected combinations",
+                "message_template": "🎨 Time to shake things up! This {dish} features unique ingredients and creative techniques to reignite your culinary passion. Cooking can be an adventure - let this recipe inspire your creativity! ✨"
+            }
+        }
     
     async def initialize(self):
         try:
-            # Configure Gemini API
             genai.configure(api_key=self.settings.GEMINI_API_KEY)
-            
-            # Use the working model
-            model_name = 'gemini-2.0-flash-exp'
+            model_name = 'gemini-2.5-flash-lite'
             
             logger.info(f"Initializing recipe model: {model_name}")
             self.model = genai.GenerativeModel(model_name)
             
-            # Test the model
             test_prompt = "Respond with 'OK' if working."
             response = self.model.generate_content(test_prompt)
             
@@ -54,45 +94,42 @@ class RecipeService:
         health_goals: List[str],
         cuisine_preference: Optional[str] = None
     ) -> str:
-        mood_context = {
-            MoodEnum.HAPPY: "energizing and colorful dishes that bring joy",
-            MoodEnum.SAD: "comforting and warming foods that provide emotional comfort",
-            MoodEnum.ENERGETIC: "protein-rich and nutritious meals that sustain energy",
-            MoodEnum.TIRED: "easy-to-make, nourishing dishes that require minimal effort",
-            MoodEnum.STRESSED: "calming and simple recipes with soothing flavors",
-            MoodEnum.CALM: "light and refreshing meals that maintain tranquility",
-            MoodEnum.EXCITED: "bold and adventurous dishes with exciting flavors",
-            MoodEnum.BORED: "creative and unique recipes to spark culinary interest"
-        }
+        mood_info = self.mood_guidance.get(mood, self.mood_guidance[MoodEnum.HAPPY])
         
         ingredients_list = '\n'.join([f"- {ing}" for ing in ingredients])
+        dietary_str = ', '.join(dietary_preferences) if dietary_preferences else 'None'
+        allergies_str = ', '.join(allergies) if allergies else 'None'
+        health_goals_str = ', '.join(health_goals) if health_goals else 'General wellness'
         
         prompt = f"""
-You are an expert chef. Create a REAL, PRACTICAL recipe using the ingredients provided.
+You are an expert chef and nutritionist who creates recipes that match people's emotional states.
 
 USER'S AVAILABLE INGREDIENTS:
 {ingredients_list}
 
+USER'S CURRENT MOOD: {mood.value}
+MOOD GUIDANCE: Create a {mood_info['recipe_style']}. The recipe should be {mood_info['cooking_approach']}.
+
 USER PREFERENCES:
-- Mood: {mood.value} ({mood_context.get(mood, 'balanced dishes')})
-- Dietary Preferences: {', '.join(dietary_preferences) if dietary_preferences else 'None'}
-- Allergies to AVOID: {', '.join(allergies) if allergies else 'None'}
-- Health Goals: {', '.join(health_goals) if health_goals else 'General wellness'}
+- Dietary Preferences: {dietary_str}
+- MUST AVOID (Allergies): {allergies_str}
+- Health Goals: {health_goals_str}
 - Cuisine Preference: {cuisine_preference if cuisine_preference and cuisine_preference != 'any' else 'Any cuisine'}
 - Servings: 2
 
 CRITICAL RULES:
 1. Use ONLY the ingredients listed above as main ingredients
 2. You MAY add common pantry staples: salt, pepper, oil, water, basic spices
-3. Create a REAL recipe that can actually be cooked
-4. Include ALL user's ingredients in the recipe
-5. Make it practical and delicious
+3. Create a REAL recipe that matches the user's {mood.value} mood
+4. STRICTLY AVOID any ingredients the user is allergic to
+5. Consider the user's dietary preferences and health goals
+6. Make the recipe uplifting and appropriate for their emotional state
 
 Return ONLY valid JSON (no markdown, no extra text):
 
 {{
-  "title": "Recipe Name",
-  "description": "Brief description (1-2 sentences)",
+  "title": "Recipe Name (should reflect the mood)",
+  "description": "Brief description explaining how this recipe suits the {mood.value} mood",
   "ingredients": [
     "500g ingredient1",
     "2 medium ingredient2",
@@ -119,14 +156,20 @@ Return ONLY valid JSON (no markdown, no extra text):
     "sugar": 8,
     "sodium": 480
   }},
-  "tags": ["mood-based", "homemade"]
+  "tags": ["mood-based", "{mood.value}", "homemade"]
 }}
 
-Generate a real, cookable recipe now:
+Generate a mood-appropriate, cookable recipe now:
 """
         return prompt.strip()
     
-    def _parse_recipe_response(self, response_text: str) -> RecipeResponse:
+    def _create_mood_message(self, recipe_title: str, mood: MoodEnum) -> str:
+        """Generate a personalized mood message for the recipe"""
+        mood_info = self.mood_guidance.get(mood, self.mood_guidance[MoodEnum.HAPPY])
+        message = mood_info['message_template'].format(dish=recipe_title)
+        return message
+    
+    def _parse_recipe_response(self, response_text: str, mood: MoodEnum) -> RecipeResponse:
         try:
             # Clean up the response
             cleaned_text = response_text.strip()
@@ -157,7 +200,6 @@ Generate a real, cookable recipe now:
                 recipe_data = json.loads(cleaned_text)
             except json.JSONDecodeError as json_error:
                 logger.error(f"JSON decode error at position {json_error.pos}")
-                # Try more aggressive cleaning
                 start = cleaned_text.find('{')
                 end = cleaned_text.rfind('}')
                 if start != -1 and end != -1:
@@ -179,8 +221,12 @@ Generate a real, cookable recipe now:
                 sodium=float(nutrition_data.get('sodium', 400))
             )
             
+            # Create the mood message
+            recipe_title = recipe_data.get('title', 'Generated Recipe')
+            mood_message = self._create_mood_message(recipe_title, mood)
+            
             recipe = RecipeResponse(
-                title=recipe_data.get('title', 'Generated Recipe'),
+                title=recipe_title,
                 description=recipe_data.get('description', 'A delicious recipe'),
                 ingredients=recipe_data.get('ingredients', []),
                 instructions=recipe_data.get('instructions', []),
@@ -191,7 +237,8 @@ Generate a real, cookable recipe now:
                 difficulty=recipe_data.get('difficulty', 'medium'),
                 cuisine_type=recipe_data.get('cuisine_type', 'fusion'),
                 nutrition_info=nutrition_info,
-                tags=recipe_data.get('tags', [])
+                tags=recipe_data.get('tags', []),
+                mood_message=mood_message  # Add mood message to recipe
             )
             
             logger.info(f"✅ Successfully parsed recipe: {recipe.title}")
@@ -215,6 +262,7 @@ Generate a real, cookable recipe now:
         }
         
         title = f"{mood_titles.get(mood, 'Simple')} {ingredients[0].title()} Dish"
+        mood_message = self._create_mood_message(title, mood)
         
         return RecipeResponse(
             title=title,
@@ -237,7 +285,8 @@ Generate a real, cookable recipe now:
                 calories=250, protein=12, carbs=25, fat=10,
                 fiber=4, sugar=6, sodium=400
             ),
-            tags=[mood.value, "simple", "homemade"]
+            tags=[mood.value, "simple", "homemade"],
+            mood_message=mood_message
         )
     
     async def generate_recipe(
@@ -254,7 +303,6 @@ Generate a real, cookable recipe now:
         if not ingredients:
             raise CustomException(status_code=400, detail="At least one ingredient is required")
         
-        # Check if AI is initialized
         if not self.initialized:
             logger.error("❌ AI not initialized - check your GEMINI_API_KEY in .env file")
             raise CustomException(
@@ -273,9 +321,8 @@ Generate a real, cookable recipe now:
         
         for attempt in range(max_retries):
             try:
-                logger.info(f"🔄 Generating recipe (attempt {attempt + 1}/{max_retries})")
+                logger.info(f"🔄 Generating mood-based recipe (attempt {attempt + 1}/{max_retries})")
                 
-                # FIXED: Removed request_options parameter
                 response = self.model.generate_content(
                     prompt,
                     generation_config=genai.types.GenerationConfig(
@@ -291,13 +338,12 @@ Generate a real, cookable recipe now:
                 
                 logger.info(f"📥 Received response from Gemini ({len(response.text)} chars)")
                 
-                recipe = self._parse_recipe_response(response.text)
+                recipe = self._parse_recipe_response(response.text, mood)
                 
-                # Validate recipe has minimum required data
                 if not recipe.ingredients or not recipe.instructions:
                     raise Exception("Recipe missing essential data")
                 
-                logger.info(f"✅ Real recipe generated: {recipe.title}")
+                logger.info(f"✅ Mood-based recipe generated: {recipe.title}")
                 return recipe
                     
             except Exception as e:
@@ -312,5 +358,4 @@ Generate a real, cookable recipe now:
                 
                 await asyncio.sleep(1)
         
-        # This should never be reached
         raise CustomException(status_code=500, detail="Recipe generation failed")

@@ -1,6 +1,6 @@
-// frontend/src/components/recipe/RecipeDetail.jsx - FIXED VERSION V2
+// frontend/src/components/recipe/RecipeDetail.jsx - ENHANCED VERSION
 import React, { useState, useEffect } from 'react';
-import { X, Clock, Users, Sparkles, Heart } from 'lucide-react';
+import { X, Clock, Users, Sparkles, Heart, Share2, Copy, CheckCircle, Facebook, Twitter, MessageCircle } from 'lucide-react';
 import { Card } from '../common/Card';
 import { NutritionInfo } from './NutritionInfo';
 import { api } from '../../services/api';
@@ -9,17 +9,16 @@ export const RecipeDetail = ({ recipe, recipeId, onClose, isFavoritedProp = null
   const [isFavorited, setIsFavorited] = useState(isFavoritedProp !== null ? isFavoritedProp : false);
   const [favoriting, setFavoriting] = useState(false);
   const [checkingFavorite, setCheckingFavorite] = useState(isFavoritedProp === null);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   useEffect(() => {
-    // If we already know it's favorited (from FavoritesPage), skip the check
     if (isFavoritedProp !== null) {
-      console.log('Recipe Detail - Using prop favorite state:', isFavoritedProp);
       setIsFavorited(isFavoritedProp);
       setCheckingFavorite(false);
       return;
     }
 
-    // Otherwise, check with the API
     const checkIfFavorited = async () => {
       if (!recipeId) {
         setCheckingFavorite(false);
@@ -29,19 +28,10 @@ export const RecipeDetail = ({ recipe, recipeId, onClose, isFavoritedProp = null
       try {
         const result = await api.recipes.getFavorites();
         const favorites = result.favorites || [];
-        
-        // Check if current recipe is in favorites
         const isInFavorites = favorites.some(fav => {
           const favId = fav._id || fav.id;
           return favId === recipeId;
         });
-        
-        console.log('Recipe Detail - API check:', {
-          recipeId,
-          favoriteIds: favorites.map(f => f._id || f.id),
-          isInFavorites
-        });
-        
         setIsFavorited(isInFavorites);
       } catch (err) {
         console.error('Error checking favorites:', err);
@@ -64,19 +54,13 @@ export const RecipeDetail = ({ recipe, recipeId, onClose, isFavoritedProp = null
     setFavoriting(true);
     try {
       const result = await api.recipes.toggleFavorite(recipeId);
-      
-      console.log('Recipe Detail - Toggle result:', result);
-      
-      // Update local state
       const newFavoriteState = result.is_favorited;
       setIsFavorited(newFavoriteState);
       
-      // Show feedback
       const message = newFavoriteState 
         ? '❤️ Added to favorites!' 
         : '💔 Removed from favorites';
       
-      // Create notification
       const notification = document.createElement('div');
       notification.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-pink-600 text-white px-6 py-3 rounded-xl shadow-lg z-50 animate-fade-in';
       notification.textContent = message;
@@ -94,8 +78,57 @@ export const RecipeDetail = ({ recipe, recipeId, onClose, isFavoritedProp = null
     }
   };
 
+  const generateRecipeText = () => {
+    return `🍳 ${recipe.title}
+
+${recipe.description}
+
+⏱️ Prep: ${recipe.prep_time}m | Cook: ${recipe.cook_time}m | Total: ${recipe.total_time}m
+👥 Servings: ${recipe.servings} | 📊 Difficulty: ${recipe.difficulty}
+
+📝 INGREDIENTS:
+${recipe.ingredients.map((ing, i) => `${i + 1}. ${ing}`).join('\n')}
+
+👨‍🍳 INSTRUCTIONS:
+${recipe.instructions.map((step, i) => `${i + 1}. ${step}`).join('\n')}
+
+🔥 Calories: ${recipe.nutrition_info.calories} | Protein: ${recipe.nutrition_info.protein}g
+
+${recipe.mood_message || ''}
+
+Generated with MoodMunch 🍽️
+`;
+  };
+
+  const handleCopyRecipe = async () => {
+    try {
+      const recipeText = generateRecipeText();
+      await navigator.clipboard.writeText(recipeText);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      alert('Failed to copy recipe');
+    }
+  };
+
+  const handleShareWhatsApp = () => {
+    const text = encodeURIComponent(`Check out this recipe: ${recipe.title}\n\nGenerated with MoodMunch 🍽️`);
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  };
+
+  const handleShareTwitter = () => {
+    const text = encodeURIComponent(`Just made "${recipe.title}" using @MoodMunch! 🍽️✨ AI-powered recipes based on mood and ingredients.`);
+    window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
+  };
+
+  const handleShareFacebook = () => {
+    const url = encodeURIComponent(window.location.href);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank');
+  };
+
   return (
-    <Card className="max-w-4xl mx-auto">
+    <Card className="max-w-4xl mx-auto relative">
+      {/* Header with Actions */}
       <div className="flex items-start justify-between mb-6">
         <div className="flex-1 pr-4">
           <h2 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-2">
@@ -106,6 +139,64 @@ export const RecipeDetail = ({ recipe, recipeId, onClose, isFavoritedProp = null
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Share Button */}
+          <div className="relative">
+            <button
+              onClick={() => setShowShareMenu(!showShareMenu)}
+              className="p-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white transition-all transform hover:scale-110 active:scale-95 shadow-lg"
+              title="Share recipe"
+            >
+              <Share2 className="w-6 h-6" />
+            </button>
+
+            {/* Share Menu */}
+            {showShareMenu && (
+              <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 p-2">
+                <button
+                  onClick={handleCopyRecipe}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 transition-all"
+                >
+                  {copySuccess ? (
+                    <>
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span className="text-sm font-medium">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-5 h-5" />
+                      <span className="text-sm font-medium">Copy Recipe</span>
+                    </>
+                  )}
+                </button>
+                
+                <button
+                  onClick={handleShareWhatsApp}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 transition-all"
+                >
+                  <MessageCircle className="w-5 h-5 text-green-500" />
+                  <span className="text-sm font-medium">WhatsApp</span>
+                </button>
+
+                <button
+                  onClick={handleShareTwitter}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 transition-all"
+                >
+                  <Twitter className="w-5 h-5 text-blue-400" />
+                  <span className="text-sm font-medium">Twitter</span>
+                </button>
+
+                <button
+                  onClick={handleShareFacebook}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 transition-all"
+                >
+                  <Facebook className="w-5 h-5 text-blue-600" />
+                  <span className="text-sm font-medium">Facebook</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Favorite Button */}
           {recipeId && (
             <button
               onClick={handleToggleFavorite}
@@ -124,6 +215,8 @@ export const RecipeDetail = ({ recipe, recipeId, onClose, isFavoritedProp = null
               />
             </button>
           )}
+
+          {/* Close Button */}
           <button
             onClick={onClose}
             className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
@@ -133,6 +226,7 @@ export const RecipeDetail = ({ recipe, recipeId, onClose, isFavoritedProp = null
         </div>
       </div>
 
+      {/* Recipe Stats */}
       <div className="grid grid-cols-3 gap-3 md:gap-4 mb-6">
         <div className="gradient-card rounded-xl p-3 md:p-4 text-center">
           <Clock className="w-5 h-5 md:w-6 md:h-6 mx-auto mb-2 text-pink-600 dark:text-pink-400" />
@@ -157,6 +251,7 @@ export const RecipeDetail = ({ recipe, recipeId, onClose, isFavoritedProp = null
         </div>
       </div>
 
+      {/* Ingredients and Nutrition */}
       <div className="grid md:grid-cols-2 gap-6 mb-6">
         <div>
           <h3 className="text-lg md:text-xl font-bold text-gray-800 dark:text-white mb-3">
@@ -175,7 +270,8 @@ export const RecipeDetail = ({ recipe, recipeId, onClose, isFavoritedProp = null
         <NutritionInfo nutrition={recipe.nutrition_info} />
       </div>
 
-      <div>
+      {/* Instructions */}
+      <div className="mb-6">
         <h3 className="text-lg md:text-xl font-bold text-gray-800 dark:text-white mb-3">
           Instructions
         </h3>
@@ -190,6 +286,25 @@ export const RecipeDetail = ({ recipe, recipeId, onClose, isFavoritedProp = null
           ))}
         </ol>
       </div>
+
+      {/* Mood Message - NEW SECTION */}
+      {recipe.mood_message && (
+        <div className="bg-gradient-to-r from-pink-50 via-purple-50 to-indigo-50 dark:from-pink-900/20 dark:via-purple-900/20 dark:to-indigo-900/20 rounded-2xl p-6 border-2 border-pink-200 dark:border-pink-800">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center text-2xl">
+              💖
+            </div>
+            <div className="flex-1">
+              <h4 className="text-lg font-bold text-gray-800 dark:text-white mb-2">
+                A Message for You
+              </h4>
+              <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                {recipe.mood_message}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   );
 };

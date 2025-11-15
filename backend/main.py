@@ -14,7 +14,8 @@ from app.database.mongodb import get_database
 from app.models.schemas import (
     UserCreate, UserResponse, UserLogin, RecipeRequest, RecipeResponse,
     VoiceIngredientRequest, IngredientExtractionResponse,
-    MoodLog, UserProfile, RecipeHistory
+    MoodLog, UserProfile, RecipeHistory,
+    DailyMoodCreate  # ✨ ADD THIS
 )
 from app.services.auth_service import AuthService
 from app.services.recipe_service import RecipeService
@@ -613,4 +614,172 @@ async def get_ingredient_statistics(
         }
     except Exception as e:
         logger.error(f"Ingredient stats error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    # backend/main.py - ADD THESE ENDPOINTS (add after existing endpoints)
+
+# ============== DAILY MOOD TRACKING ==============
+
+@app.post("/mood/daily-log")
+async def log_daily_mood(
+    mood_data: DailyMoodCreate,
+    current_user: str = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Log daily mood with detailed metrics"""
+    try:
+        mood_log = {
+            "user_id": current_user,
+            "mood": mood_data.mood.value,
+            "energy_level": mood_data.energy_level,
+            "meal_preference": mood_data.meal_preference,
+            "emotional_state": mood_data.emotional_state,
+            "timestamp": datetime.utcnow()
+        }
+        
+        result = await db.database.daily_mood_logs.insert_one(mood_log)
+        
+        return {
+            "message": "Mood logged successfully",
+            "log_id": str(result.inserted_id),
+            "mood": mood_data.mood.value,
+            "timestamp": mood_log["timestamp"].isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error logging mood: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/mood/insights")
+async def get_mood_insights(
+    current_user: str = Depends(get_current_user),
+    db = Depends(get_database),
+    days: int = 30
+):
+    """Get comprehensive mood insights"""
+    try:
+        start_date = datetime.utcnow() - timedelta(days=days)
+        
+        # Get all mood logs for the period
+        logs_cursor = db.database.daily_mood_logs.find({
+            "user_id": current_user,
+            "timestamp": {"$gte": start_date}
+        }).sort("timestamp", -1)
+        
+        logs = await logs_cursor.to_list(length=None)
+        
+        if not logs:
+            return {
+                "message": "No mood data available yet",
+                "total_logs": 0
+            }
+        
+        # Calculate insights
+        moods = [log["mood"] for log in logs]
+        energy_levels = [log["energy_level"] for log in logs]
+        meal_prefs = [log["meal_preference"] for log in logs]
+        
+        from collections import Counter
+        mood_counter = Counter(moods)
+        meal_counter = Counter(meal_prefs)
+        
+        # Get logs from last 7 days
+        week_ago = datetime.utcnow() - timedelta(days=7)
+        logs_this_week = [log for log in logs if log["timestamp"] >= week_ago]
+        
+        # Calculate energy trend
+        if len(energy_levels) >= 2:
+            recent_avg = sum(energy_levels[:len(energy_levels)//2]) / (len(energy_levels)//2)
+            older_avg = sum(energy_levels[len(energy_levels)//2:]) / (len(energy_levels) - len(energy_levels)//2)
+            
+            if recent_avg > older_avg + 1:
+                energy_trend = "increasing"
+            elif recent_avg < older_avg - 1:
+                energy_trend = "decreasing"
+            else:
+                energy_trend = "stable"
+        else:
+            energy_trend = "not_enough_data"
+        
+        return {
+            "most_common_mood": mood_counter.most_common(1)[0][0],
+            "average_energy_level": round(sum(energy_levels) / len(energy_levels), 1),
+            "preferred_meal_type": meal_counter.most_common(1)[0][0],
+            "total_logs": len(logs),
+            "logs_this_week": len(logs_this_week),
+            "energy_trend": energy_trend,
+            "mood_distribution": dict(mood_counter),
+            "meal_distribution": dict(meal_counter)
+        }
+    except Exception as e:
+        logger.error(f"Error getting mood insights: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/mood/history")
+async def get_mood_history(
+    current_user: str = Depends(get_current_user),
+    db = Depends(get_database),
+    days: int = 30,
+    limit: int = 100
+):
+    """Get mood history for the user"""
+    try:
+        start_date = datetime.utcnow() - timedelta(days=days)
+        
+        logs_cursor = db.database.daily_mood_logs.find({
+            "user_id": current_user,
+            "timestamp": {"$gte": start_date}
+        }).sort("timestamp", -1).limit(limit)
+        
+        logs = await logs_cursor.to_list(length=limit)
+        
+        # Format for frontend
+        formatted_logs = []
+        for log in logs:
+            formatted_logs.append({
+                "date": log["timestamp"].strftime("%Y-%m-%d"),
+                "time": log["timestamp"].strftime("%H:%M"),
+                "mood": log["mood"],
+                "energy_level": log["energy_level"],
+                "meal_preference": log.get("meal_preference", ""),
+                "emotional_state": log.get("emotional_state", "")
+            })
+        
+        return {
+            "logs": formatted_logs,
+            "total": len(formatted_logs),
+            "period_days": days
+        }
+    except Exception as e:
+        logger.error(f"Error getting mood history: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/mood/today")
+async def get_todays_mood(
+    current_user: str = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Check if user has logged mood today"""
+    try:
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        today_log = await db.database.daily_mood_logs.find_one({
+            "user_id": current_user,
+            "timestamp": {"$gte": today_start}
+        })
+        
+        if today_log:
+            return {
+                "logged_today": True,
+                "mood": today_log["mood"],
+                "energy_level": today_log["energy_level"],
+                "meal_preference": today_log.get("meal_preference", ""),
+                "emotional_state": today_log.get("emotional_state", ""),
+                "timestamp": today_log["timestamp"].isoformat()
+            }
+        else:
+            return {
+                "logged_today": False,
+                "message": "No mood logged today yet"
+            }
+    except Exception as e:
+        logger.error(f"Error checking today's mood: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

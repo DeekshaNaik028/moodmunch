@@ -108,6 +108,24 @@ class ApiService {
     getMoodTrends: (days = 30) => this.call(`/analytics/mood-trends?days=${days}`),
     getIngredientStats: () => this.call('/analytics/ingredient-stats'),
   };
+
+  // frontend/src/services/api.js - ADD MOOD METHODS
+
+// Add this to the existing ApiService class:
+
+  mood = {
+    logDailyMood: (data) => this.call('/mood/daily-log', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    
+    getMoodInsights: (days = 30) => this.call(`/mood/insights?days=${days}`),
+    
+    getMoodHistory: (days = 30, limit = 100) => 
+      this.call(`/mood/history?days=${days}&limit=${limit}`),
+    
+    getTodaysMood: () => this.call('/mood/today'),
+  };
 }
 
 export const api = new ApiService();

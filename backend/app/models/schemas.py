@@ -101,8 +101,9 @@ class RecipeResponse(BaseModel):
     cuisine_type: str
     nutrition_info: NutritionInfo
     tags: List[str] = []
+    mood_message: Optional[str] = None  # NEW FIELD - Personalized mood message
     generated_at: datetime = datetime.utcnow()
-
+    
 class RecipeRequest(BaseModel):
     ingredients: List[str]
     mood: MoodEnum
@@ -141,7 +142,79 @@ class MoodLog(BaseModel):
     user_id: str
     mood: MoodEnum
     timestamp: datetime = datetime.utcnow()
+# backend/app/models/schemas.py - ADD THESE NEW SCHEMAS
 
+# Add to the existing file, after MoodLog class:
+
+class DailyMoodLog(BaseModel):
+    """Enhanced daily mood log with detailed metrics"""
+    user_id: str
+    mood: MoodEnum
+    energy_level: int  # 1-10
+    meal_preference: str  # comfort, light, hearty, quick
+    emotional_state: str  # happy, stressed, calm, excited, sad, bored
+    timestamp: datetime = datetime.utcnow()
+    
+    @validator('energy_level')
+    def validate_energy_level(cls, v):
+        if not 1 <= v <= 10:
+            raise ValueError('Energy level must be between 1 and 10')
+        return v
+
+class DailyMoodCreate(BaseModel):
+    """Request model for creating daily mood log"""
+    mood: MoodEnum
+    energy_level: int
+    meal_preference: str
+    emotional_state: str
+    
+    @validator('energy_level')
+    def validate_energy_level(cls, v):
+        if not 1 <= v <= 10:
+            raise ValueError('Energy level must be between 1 and 10')
+        return v
+    
+    @validator('meal_preference')
+    def validate_meal_preference(cls, v):
+        valid_prefs = ['comfort', 'light', 'hearty', 'quick']
+        if v not in valid_prefs:
+            raise ValueError(f'Meal preference must be one of: {", ".join(valid_prefs)}')
+        return v
+    
+    @validator('emotional_state')
+    def validate_emotional_state(cls, v):
+        valid_states = ['happy', 'sad', 'stressed', 'calm', 'excited', 'bored']
+        if v not in valid_states:
+            raise ValueError(f'Emotional state must be one of: {", ".join(valid_states)}')
+        return v
+
+class DailyMoodLog(BaseModel):
+    """Enhanced daily mood log with detailed metrics"""
+    user_id: str
+    mood: MoodEnum
+    energy_level: int  # 1-10
+    meal_preference: str  # comfort, light, hearty, quick
+    emotional_state: str  # happy, stressed, calm, excited, sad, bored
+    timestamp: datetime = datetime.utcnow()
+    
+    @validator('energy_level')
+    def validate_energy_level(cls, v):
+        if not 1 <= v <= 10:
+            raise ValueError('Energy level must be between 1 and 10')
+        return v
+
+class MoodInsights(BaseModel):
+    """Comprehensive mood insights for analytics"""
+    most_common_mood: str
+    average_energy_level: float
+    preferred_meal_type: str
+    mood_trend: str  # improving, declining, stable
+    total_logs: int
+    logs_this_week: int
+    energy_trend: str  # increasing, decreasing, stable
+    mood_distribution: Optional[Dict[str, int]] = None
+    meal_distribution: Optional[Dict[str, int]] = None
+    
 class RecipeHistory(BaseModel):
     user_id: str
     recipe: RecipeResponse
