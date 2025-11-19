@@ -1,3 +1,5 @@
+# backend/requirements.txt - UPDATED VERSION
+
 # ==========================================
 # CORE DEPENDENCIES - ESSENTIAL
 # ==========================================
@@ -7,7 +9,7 @@ fastapi==0.109.0
 uvicorn[standard]==0.27.0
 python-multipart==0.0.6
 
-# Database (Required) - FIXED VERSIONS
+# Database (Required)
 motor==3.5.1
 pymongo==4.8.0
 
@@ -31,6 +33,7 @@ aiofiles==23.2.1
 
 # HTTP Requests (Required)
 httpx==0.26.0
+requests==2.31.0
 
 # Date & Time utilities
 python-dateutil==2.8.2
@@ -38,5 +41,5 @@ python-dateutil==2.8.2
 # Logging
 python-json-logger==2.0.7
 
-# Mangum for Vercel serverless (NEW)
+# Mangum for Vercel serverless
 mangum==0.17.0

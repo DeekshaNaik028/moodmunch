@@ -9,13 +9,22 @@ from datetime import datetime
 import os
 import time
 from pathlib import Path
+from app.services.email_service import EmailService
+from dotenv import load_dotenv
+BASE_DIR = Path(__file__).resolve().parent
+env_path = BASE_DIR / '.env'
+load_dotenv(dotenv_path=env_path)
 
 from app.database.mongodb import get_database
 from app.models.schemas import (
     UserCreate, UserResponse, UserLogin, RecipeRequest, RecipeResponse,
     VoiceIngredientRequest, IngredientExtractionResponse,
     MoodLog, UserProfile, RecipeHistory,
-    DailyMoodCreate  # ✨ ADD THIS
+    DailyMoodCreate, EmailVerification,
+    ResendVerification,
+    PasswordResetRequest,
+    PasswordReset,
+    PasswordChange
 )
 from app.services.auth_service import AuthService
 from app.services.recipe_service import RecipeService
@@ -783,3 +792,91 @@ async def get_todays_mood(
     except Exception as e:
         logger.error(f"Error checking today's mood: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/auth/verify-email")
+async def verify_email(data: EmailVerification, db = Depends(get_database)):
+    """Verify user email with token"""
+    try:
+        auth_service = get_auth_service()
+        result = await auth_service.verify_email(data.token, db)
+        return result
+    except CustomException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        logger.error(f"Email verification error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/auth/resend-verification")
+async def resend_verification(data: ResendVerification, db = Depends(get_database)):
+    """Resend verification email"""
+    try:
+        auth_service = get_auth_service()
+        await auth_service.resend_verification_email(data.email, db)
+        return {
+            "message": "If an account exists with this email, a verification link has been sent."
+        }
+    except CustomException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        logger.error(f"Resend verification error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/auth/forgot-password")
+async def forgot_password(data: PasswordResetRequest, db = Depends(get_database)):
+    """Request password reset email"""
+    try:
+        auth_service = get_auth_service()
+        await auth_service.request_password_reset(data.email, db)
+        return {
+            "message": "If an account exists with this email, password reset instructions have been sent."
+        }
+    except Exception as e:
+        logger.error(f"Forgot password error: {str(e)}")
+        # Always return success to avoid email enumeration
+        return {
+            "message": "If an account exists with this email, password reset instructions have been sent."
+        }
+
+@app.post("/auth/reset-password")
+async def reset_password(data: PasswordReset, db = Depends(get_database)):
+    """Reset password with token"""
+    try:
+        auth_service = get_auth_service()
+        success = await auth_service.reset_password(data.token, data.new_password, db)
+        if success:
+            return {
+                "message": "Password reset successful. You can now login with your new password."
+            }
+        else:
+            raise HTTPException(status_code=400, detail="Password reset failed")
+    except CustomException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        logger.error(f"Reset password error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/auth/change-password")
+async def change_password(
+    data: PasswordChange,
+    current_user: str = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Change password (when logged in)"""
+    try:
+        auth_service = get_auth_service()
+        success = await auth_service.change_password(
+            current_user,
+            data.current_password,
+            data.new_password,
+            db
+        )
+        if success:
+            return {"message": "Password changed successfully"}
+        else:
+            raise HTTPException(status_code=400, detail="Password change failed")
+    except CustomException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        logger.error(f"Change password error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+

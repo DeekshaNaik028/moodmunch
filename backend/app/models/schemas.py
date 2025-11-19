@@ -3,6 +3,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
 
+
 class MoodEnum(str, Enum):
     HAPPY = "happy"
     SAD = "sad"
@@ -248,3 +249,23 @@ class UserStats(BaseModel):
     mood_trends: List[MoodTrendData]
     most_used_cuisine: Optional[str]
     avg_cooking_time: Optional[float]
+
+
+
+class EmailVerification(BaseModel):
+    token: str
+
+class ResendVerification(BaseModel):
+    email: EmailStr
+
+# Password Reset Schemas
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+class PasswordReset(BaseModel):
+    token: str
+    new_password: str
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str

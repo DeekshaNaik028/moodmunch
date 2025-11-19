@@ -1,9 +1,15 @@
+// frontend/src/App.jsx - FIXED VERSION WITH IMPORTS
 import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { AppLayout } from './components/layout/AppLayout';
 import { AuthScreen } from './components/auth/AuthScreen';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
 import { NetworkStatus } from './components/common/NetworkStatus';
+import { EmailVerificationPage } from './pages/EmailVerificationPage';
+import { ResendVerificationPage } from './pages/ResendVerificationPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 
 const App = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -17,10 +23,26 @@ const App = () => {
   }
 
   return (
-    <>
+    <BrowserRouter>
       <NetworkStatus />
-      {isAuthenticated ? <AppLayout /> : <AuthScreen />}
-    </>
+      <Routes>
+        {/* Public routes */}
+        <Route 
+          path="/login" 
+          element={isAuthenticated ? <Navigate to="/" /> : <AuthScreen />} 
+        />
+        <Route path="/verify-email" element={<EmailVerificationPage />} />
+        <Route path="/resend-verification" element={<ResendVerificationPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        
+        {/* Protected routes */}
+        <Route 
+          path="/*" 
+          element={isAuthenticated ? <AppLayout /> : <Navigate to="/login" />} 
+        />
+      </Routes>
+    </BrowserRouter>
   );
 };
 

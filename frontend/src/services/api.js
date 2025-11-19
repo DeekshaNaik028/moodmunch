@@ -31,15 +31,42 @@ class ApiService {
   }
 
   auth = {
-    register: (data) => this.call('/auth/register', { 
-      method: 'POST', 
-      body: JSON.stringify(data) 
-    }),
-    login: (data) => this.call('/auth/login', { 
-      method: 'POST', 
-      body: JSON.stringify(data) 
-    }),
-  };
+  register: (data) => this.call('/auth/register', { 
+    method: 'POST', 
+    body: JSON.stringify(data) 
+  }),
+  login: (data) => this.call('/auth/login', { 
+    method: 'POST', 
+    body: JSON.stringify(data) 
+  }),
+  
+  // NEW: Email verification methods
+  verifyEmail: (token) => this.call('/auth/verify-email', {
+    method: 'POST',
+    body: JSON.stringify({ token })
+  }),
+  
+  resendVerification: (email) => this.call('/auth/resend-verification', {
+    method: 'POST',
+    body: JSON.stringify({ email })
+  }),
+  
+  // NEW: Password reset methods
+  forgotPassword: (email) => this.call('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email })
+  }),
+  
+  resetPassword: (token, new_password) => this.call('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, new_password })
+  }),
+  
+  changePassword: (current_password, new_password) => this.call('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ current_password, new_password })
+  }),
+};
 
   ingredients = {
     extractFromAudio: async (file) => {

@@ -1,4 +1,4 @@
-// frontend/src/components/auth/AuthScreen.jsx - ENHANCED VERSION
+// frontend/src/components/auth/AuthScreen.jsx - COMPLETE VERSION
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
@@ -6,12 +6,12 @@ import { Button } from '../common/Button';
 import { Input } from '../common/Input';
 import { Card } from '../common/Card';
 import { Logo } from '../common/Logo';
-import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Mail } from 'lucide-react';
 import { DIETARY_PREFERENCES, HEALTH_GOALS } from '../../utils/constants';
 
 export const AuthScreen = () => {
   const [isLogin, setIsLogin] = useState(true);
-  const [step, setStep] = useState(1); // For multi-step registration
+  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -23,6 +23,7 @@ export const AuthScreen = () => {
   const [newAllergy, setNewAllergy] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const { login } = useAuth();
 
   const handleSubmit = async (e) => {
@@ -40,11 +41,8 @@ export const AuthScreen = () => {
       } else {
         // Register with complete profile
         await api.auth.register(formData);
-        const response = await api.auth.login({
-          email: formData.email,
-          password: formData.password,
-        });
-        login(response.access_token, response.user);
+        // Show success message instead of auto-login
+        setRegistrationSuccess(true);
       }
     } catch (err) {
       setError(err.message);
@@ -284,6 +282,87 @@ export const AuthScreen = () => {
     </form>
   );
 
+  // Show registration success screen
+  if (registrationSuccess) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 transition-colors">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="inline-block mb-4">
+              <Logo size="large" />
+            </div>
+            <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">
+              MoodMunch
+            </h1>
+          </div>
+
+          <Card>
+            <div className="text-center py-8">
+              <div className="w-20 h-20 mx-auto mb-4 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                <Mail className="w-12 h-12 text-green-600 dark:text-green-400" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+                Check Your Email! 📧
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                We've sent a verification link to:
+              </p>
+              <p className="font-semibold text-pink-600 dark:text-pink-400 mb-6">
+                {formData.email}
+              </p>
+              <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-6 text-left">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  <strong>Next Steps:</strong>
+                </p>
+                <ol className="list-decimal list-inside text-sm text-gray-600 dark:text-gray-400 mt-2 space-y-1">
+                  <li>Check your email inbox</li>
+                  <li>Click the verification link</li>
+                  <li>Come back and login</li>
+                </ol>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mb-6">
+                Didn't receive the email? Check your spam folder or wait a few minutes.
+              </p>
+              <div className="space-y-3">
+                <Button
+                  onClick={() => {
+                    setIsLogin(true);
+                    setRegistrationSuccess(false);
+                    setFormData({
+                      email: '',
+                      password: '',
+                      name: '',
+                      dietary_preferences: [],
+                      allergies: [],
+                      health_goals: [],
+                    });
+                  }}
+                  className="w-full"
+                >
+                  Go to Login
+                </Button>
+                <button
+                  onClick={async () => {
+                    try {
+                      await api.auth.resendVerification(formData.email);
+                      alert('Verification email resent!');
+                    } catch (err) {
+                      alert('Failed to resend: ' + err.message);
+                    }
+                  }}
+                  className="w-full text-sm text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
+                >
+                  Resend Verification Email
+                </button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Main login/registration form
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 transition-colors">
       <div className="w-full max-w-md">
@@ -346,6 +425,14 @@ export const AuthScreen = () => {
                 <Button type="submit" loading={loading} className="w-full">
                   Sign In
                 </Button>
+
+                <button
+                  type="button"
+                  onClick={() => window.location.href = '/forgot-password'}
+                  className="w-full text-sm text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
+                >
+                  Forgot Password?
+                </button>
               </form>
             </>
           ) : (
