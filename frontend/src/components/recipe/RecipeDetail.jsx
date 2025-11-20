@@ -4,6 +4,7 @@ import { X, Clock, Users, Sparkles, Heart, Share2, Copy, CheckCircle, Facebook, 
 import { Card } from '../common/Card';
 import { NutritionInfo } from './NutritionInfo';
 import { api } from '../../services/api';
+import { Star } from 'lucide-react';
 
 export const RecipeDetail = ({ recipe, recipeId, onClose, isFavoritedProp = null }) => {
   const [isFavorited, setIsFavorited] = useState(isFavoritedProp !== null ? isFavoritedProp : false);
@@ -11,7 +12,9 @@ export const RecipeDetail = ({ recipe, recipeId, onClose, isFavoritedProp = null
   const [checkingFavorite, setCheckingFavorite] = useState(isFavoritedProp === null);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
-
+  const [rating, setRating] = useState(recipe.rating || 0);
+  const [hoveredRating, setHoveredRating] = useState(0);
+  const [isRating, setIsRating] = useState(false);
   useEffect(() => {
     if (isFavoritedProp !== null) {
       setIsFavorited(isFavoritedProp);
@@ -125,7 +128,43 @@ Generated with MoodMunch 🍽️
     const url = encodeURIComponent(window.location.href);
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank');
   };
-
+  // Update the handleRate function to use themed notification
+const handleRate = async (newRating) => {
+  if (!recipeId) return;
+  
+  setIsRating(true);
+  try {
+    await api.recipes.rateRecipe(recipeId, newRating);
+    setRating(newRating);
+    
+    // Create themed notification with animation
+    const notification = document.createElement('div');
+    notification.className = 'fixed top-24 left-1/2 transform -translate-x-1/2 z-50 animate-slide-down';
+    notification.innerHTML = `
+      <div class="bg-gradient-to-r from-pink-600 to-purple-600 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 backdrop-blur-lg border-2 border-white/20">
+        <div class="flex gap-1">
+          ${Array(newRating).fill('').map(() => '<span class="text-yellow-400 text-xl">⭐</span>').join('')}
+        </div>
+        <div class="border-l-2 border-white/30 pl-3">
+          <div class="font-bold text-lg">Rated ${newRating} Star${newRating !== 1 ? 's' : ''}!</div>
+          <div class="text-xs text-pink-100">Thank you for your feedback</div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(notification);
+    
+    // Animate out and remove
+    setTimeout(() => {
+      notification.style.animation = 'slide-up 0.5s ease-out forwards';
+      setTimeout(() => notification.remove(), 500);
+    }, 3000);
+  } catch (err) {
+    console.error('Failed to rate:', err);
+    alert('Failed to rate recipe: ' + err.message);
+  } finally {
+    setIsRating(false);
+  }
+};
   return (
     <Card className="max-w-4xl mx-auto relative">
       {/* Header with Actions */}
@@ -139,31 +178,31 @@ Generated with MoodMunch 🍽️
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Share Button */}
+          {/* Share Button - THEMED VERSION */}
           <div className="relative">
             <button
               onClick={() => setShowShareMenu(!showShareMenu)}
-              className="p-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white transition-all transform hover:scale-110 active:scale-95 shadow-lg"
+              className="p-3 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white transition-all transform hover:scale-110 active:scale-95 shadow-lg hover:shadow-xl"
               title="Share recipe"
             >
               <Share2 className="w-6 h-6" />
             </button>
 
-            {/* Share Menu */}
+            {/* Share Menu - THEMED VERSION */}
             {showShareMenu && (
-              <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 p-2">
+              <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-pink-200 dark:border-pink-800 z-50 p-2 backdrop-blur-lg">
                 <button
                   onClick={handleCopyRecipe}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 transition-all"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gradient-to-r hover:from-pink-50 hover:to-purple-50 dark:hover:from-pink-900/20 dark:hover:to-purple-900/20 text-gray-800 dark:text-gray-200 transition-all group"
                 >
                   {copySuccess ? (
                     <>
                       <CheckCircle className="w-5 h-5 text-green-500" />
-                      <span className="text-sm font-medium">Copied!</span>
+                      <span className="text-sm font-medium text-green-600 dark:text-green-400">Copied!</span>
                     </>
                   ) : (
                     <>
-                      <Copy className="w-5 h-5" />
+                      <Copy className="w-5 h-5 text-pink-600 dark:text-pink-400 group-hover:scale-110 transition-transform" />
                       <span className="text-sm font-medium">Copy Recipe</span>
                     </>
                   )}
@@ -171,25 +210,25 @@ Generated with MoodMunch 🍽️
                 
                 <button
                   onClick={handleShareWhatsApp}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 transition-all"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 dark:hover:from-green-900/20 dark:hover:to-emerald-900/20 text-gray-800 dark:text-gray-200 transition-all group"
                 >
-                  <MessageCircle className="w-5 h-5 text-green-500" />
+                  <MessageCircle className="w-5 h-5 text-green-500 group-hover:scale-110 transition-transform" />
                   <span className="text-sm font-medium">WhatsApp</span>
                 </button>
 
                 <button
                   onClick={handleShareTwitter}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 transition-all"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 dark:hover:from-blue-900/20 dark:hover:to-cyan-900/20 text-gray-800 dark:text-gray-200 transition-all group"
                 >
-                  <Twitter className="w-5 h-5 text-blue-400" />
+                  <Twitter className="w-5 h-5 text-blue-400 group-hover:scale-110 transition-transform" />
                   <span className="text-sm font-medium">Twitter</span>
                 </button>
 
                 <button
                   onClick={handleShareFacebook}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 transition-all"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 text-gray-800 dark:text-gray-200 transition-all group"
                 >
-                  <Facebook className="w-5 h-5 text-blue-600" />
+                  <Facebook className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
                   <span className="text-sm font-medium">Facebook</span>
                 </button>
               </div>
@@ -250,7 +289,48 @@ Generated with MoodMunch 🍽️
           <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Difficulty</div>
         </div>
       </div>
-
+       {/* Rating Section - THEMED VERSION */}
+      {recipeId && (
+        <div className="mb-6 p-6 md:p-8 bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50 dark:from-pink-900/20 dark:via-purple-900/20 dark:to-indigo-900/20 rounded-2xl border-2 border-pink-200 dark:border-pink-800 shadow-lg">
+          <h3 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent mb-4 text-center">
+            How would you rate this recipe?
+          </h3>
+          <div className="flex items-center justify-center gap-3">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                onClick={() => handleRate(star)}
+                onMouseEnter={() => setHoveredRating(star)}
+                onMouseLeave={() => setHoveredRating(0)}
+                disabled={isRating}
+                className="transform transition-all duration-200 hover:scale-125 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-pink-500 rounded-full p-1"
+              >
+                <Star
+                  className={`w-10 h-10 md:w-12 md:h-12 transition-all duration-200 ${
+                    star <= (hoveredRating || rating)
+                      ? 'fill-yellow-400 text-yellow-400 drop-shadow-lg'
+                      : 'text-gray-300 dark:text-gray-600 hover:text-yellow-300'
+                  }`}
+                />
+              </button>
+            ))}
+          </div>
+          {rating > 0 && (
+            <div className="mt-4 text-center">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 rounded-full shadow-md">
+                <div className="flex gap-1">
+                  {Array(rating).fill('').map((_, i) => (
+                    <span key={i} className="text-yellow-400">⭐</span>
+                  ))}
+                </div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  You rated this {rating} star{rating !== 1 ? 's' : ''}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       {/* Ingredients and Nutrition */}
       <div className="grid md:grid-cols-2 gap-6 mb-6">
         <div>

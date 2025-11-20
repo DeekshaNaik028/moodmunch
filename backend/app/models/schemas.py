@@ -269,3 +269,14 @@ class PasswordReset(BaseModel):
 class PasswordChange(BaseModel):
     current_password: str
     new_password: str
+
+# Add this class at the end of the file, after the other schemas
+
+class RatingRequest(BaseModel):
+    rating: int
+    
+    @validator('rating')
+    def validate_rating(cls, v):
+        if not 1 <= v <= 5:
+            raise ValueError('Rating must be between 1 and 5')
+        return v

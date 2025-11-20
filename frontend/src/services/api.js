@@ -110,6 +110,12 @@ class ApiService {
     deleteRecipe: (id) => this.call(`/recipes/history/${id}`, { 
       method: 'DELETE' 
     }),
+    // FIXED: Rate recipe - send rating as query parameter
+    // Rate recipe - CORRECT VERSION
+    rateRecipe: (id, rating) => this.call(`/recipes/history/${id}/rate`, {
+      method: 'POST',
+      body: JSON.stringify({ rating })
+    }),
   };
 
   users = {

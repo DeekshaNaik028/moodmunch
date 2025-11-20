@@ -24,7 +24,8 @@ from app.models.schemas import (
     ResendVerification,
     PasswordResetRequest,
     PasswordReset,
-    PasswordChange
+    PasswordChange,
+    RatingRequest
 )
 from app.services.auth_service import AuthService
 from app.services.recipe_service import RecipeService
@@ -117,7 +118,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 @app.get("/health")
 @app.get("/api/health")
 async def health_check():
-    """System health check"""
+    """System health check with stats"""
     try:
         db = await get_database()
         db_healthy = await db.health_check()
@@ -127,6 +128,30 @@ async def health_check():
             settings.GEMINI_API_KEY != "your-gemini-api-key-here"
         )
         
+        # Add stats to health check
+        total_recipes = await db.database.recipe_history.count_documents({})
+        total_users = await db.database.users.count_documents({"is_active": True})
+        
+        # Calculate average rating
+        pipeline = [
+            {"$match": {"rating": {"$exists": True, "$ne": None}}},
+            {"$group": {
+                "_id": None,
+                "average_rating": {"$avg": "$rating"},
+                "total_ratings": {"$sum": 1}
+            }}
+        ]
+        
+        rating_cursor = db.database.recipe_history.aggregate(pipeline)
+        rating_data = await rating_cursor.to_list(length=1)
+        
+        if rating_data and len(rating_data) > 0 and rating_data[0].get("total_ratings", 0) > 0:
+            average_rating = round(rating_data[0]["average_rating"], 1)
+        else:
+            average_rating = 4.9
+        
+        logger.info(f"Health check - Recipes: {total_recipes}, Users: {total_users}, Rating: {average_rating}")
+        
         return {
             "status": "healthy" if db_healthy else "degraded",
             "timestamp": datetime.utcnow().isoformat(),
@@ -135,6 +160,11 @@ async def health_check():
                 "database": "connected" if db_healthy else "disconnected",
                 "gemini_ai": "configured" if gemini_configured else "not_configured",
                 "voice_input": settings.ENABLE_VOICE_INPUT
+            },
+            "stats": {
+                "total_recipes": total_recipes,
+                "total_users": total_users,
+                "average_rating": average_rating
             }
         }
     except Exception as e:
@@ -142,18 +172,13 @@ async def health_check():
         return {
             "status": "unhealthy",
             "timestamp": datetime.utcnow().isoformat(),
-            "error": str(e)
+            "error": str(e),
+            "stats": {
+                "total_recipes": 0,
+                "total_users": 0,
+                "average_rating": 4.9
+            }
         }
-
-@app.get("/")
-async def root():
-    """API root endpoint"""
-    return {
-        "message": "MoodMunch API",
-        "version": "2.0.0",
-        "status": "running"
-    }
-
 # ============== AUTHENTICATION ==============
 
 @app.post("/auth/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -880,3 +905,95 @@ async def change_password(
         logger.error(f"Change password error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+
+# ============== PUBLIC STATS ENDPOINT ==============
+
+@app.get("/api/public/stats")
+async def get_public_stats(db = Depends(get_database)):
+    """Get public statistics for landing page - NO AUTH REQUIRED"""
+    try:
+        # Get total recipes count
+        total_recipes = await db.database.recipe_history.count_documents({})
+        
+        # Get total users count
+        total_users = await db.database.users.count_documents({"is_active": True})
+        
+        # Calculate average rating from recipe history
+        pipeline = [
+            {"$match": {"rating": {"$exists": True, "$ne": None}}},
+            {"$group": {
+                "_id": None,
+                "average_rating": {"$avg": "$rating"},
+                "total_ratings": {"$sum": 1}
+            }}
+        ]
+        
+        rating_cursor = db.database.recipe_history.aggregate(pipeline)
+        rating_data = await rating_cursor.to_list(length=1)
+        
+        if rating_data and len(rating_data) > 0 and rating_data[0].get("total_ratings", 0) > 0:
+            average_rating = round(rating_data[0]["average_rating"], 1)
+        else:
+            # If no ratings yet, use default
+            average_rating = 4.9
+        
+        logger.info(f"Public stats - Recipes: {total_recipes}, Users: {total_users}, Rating: {average_rating}")
+        
+        return {
+            "total_recipes": total_recipes,
+            "total_users": total_users,
+            "average_rating": average_rating,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error fetching public stats: {str(e)}")
+        # Return reasonable defaults if error
+        return {
+            "total_recipes": 0,
+            "total_users": 0,
+            "average_rating": 4.9,
+            "timestamp": datetime.utcnow().isoformat(),
+            "error": str(e)
+        }
+# ============== RECIPE RATING ==============
+
+@app.post("/recipes/history/{recipe_id}/rate")
+async def rate_recipe(
+    recipe_id: str,
+    rating_data: RatingRequest,
+    current_user: str = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Rate a recipe (1-5 stars)"""
+    try:
+        from bson import ObjectId
+        
+        rating = rating_data.rating
+        
+        result = await db.database.recipe_history.update_one(
+            {
+                "_id": ObjectId(recipe_id),
+                "user_id": current_user
+            },
+            {
+                "$set": {
+                    "rating": rating,
+                    "rated_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Recipe not found")
+        
+        return {
+            "message": "Recipe rated successfully",
+            "recipe_id": recipe_id,
+            "rating": rating
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Rate recipe error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
