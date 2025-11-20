@@ -107,9 +107,10 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
+      
       {/* Navigation */}
       <nav className={`fixed w-full z-50 transition-all duration-300 ${
-        scrolled ? 'bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg shadow-lg' : 'bg-transparent'
+        scrolled ? 'bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg shadow-lg' : 'bg-white/80 dark:bg-gray-900/80 backdrop-blur-md'
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 md:h-20">
@@ -151,29 +152,41 @@ const LandingPage = () => {
 
           {/* Mobile Menu */}
           {isMenuOpen && (
-            <div className="md:hidden py-4 space-y-3 border-t border-gray-200 dark:border-gray-700">
-              <button onClick={() => scrollToSection('features')} className="block w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-                Features
-              </button>
-              <button onClick={() => scrollToSection('how-it-works')} className="block w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-                How It Works
-              </button>
-              <button onClick={() => scrollToSection('benefits')} className="block w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-                Benefits
-              </button>
-              <button 
-                onClick={() => window.location.href = '/login'}
-                className="block w-full px-4 py-2.5 bg-gradient-to-r from-pink-600 to-purple-600 text-white rounded-xl font-semibold text-center"
-              >
-                Get Started
-              </button>
+            <div className="md:hidden absolute top-full left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700 shadow-xl z-50">
+              <div className="py-4 px-4 space-y-2">
+                <button 
+                  onClick={() => scrollToSection('features')} 
+                  className="block w-full text-left px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-pink-50 hover:to-purple-50 dark:hover:from-pink-900/20 dark:hover:to-purple-900/20 rounded-xl font-medium transition-all"
+                >
+                  Features
+                </button>
+                <button 
+                  onClick={() => scrollToSection('how-it-works')} 
+                  className="block w-full text-left px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-pink-50 hover:to-purple-50 dark:hover:from-pink-900/20 dark:hover:to-purple-900/20 rounded-xl font-medium transition-all"
+                >
+                  How It Works
+                </button>
+                <button 
+                  onClick={() => scrollToSection('benefits')} 
+                  className="block w-full text-left px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-pink-50 hover:to-purple-50 dark:hover:from-pink-900/20 dark:hover:to-purple-900/20 rounded-xl font-medium transition-all"
+                >
+                  Benefits
+                </button>
+                <button 
+                  onClick={() => window.location.href = '/login'}
+                  className="block w-full px-4 py-3 bg-gradient-to-r from-pink-600 to-purple-600 text-white rounded-xl font-semibold text-center shadow-lg hover:shadow-xl transition-all"
+                >
+                  Get Started
+                </button>
+              </div>
             </div>
           )}
         </div>
       </nav>
 
       {/* Hero Section - Match AuthScreen background */}
-      <section className="pt-20 md:pt-32 pb-12 md:pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      {/* Hero Section - Match AuthScreen background */}
+      <section className="pt-28 md:pt-32 pb-12 md:pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-4xl mx-auto">
             <div className="inline-flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-full mb-4 md:mb-6 border border-pink-200 dark:border-pink-800">
