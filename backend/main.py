@@ -10,11 +10,12 @@ import os
 import time
 from pathlib import Path
 from app.services.email_service import EmailService
+from app.api.admin import router as admin_router
 from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent
 env_path = BASE_DIR / '.env'
 load_dotenv(dotenv_path=env_path)
-
+app.include_router(admin_router)
 from app.database.mongodb import get_database
 from app.models.schemas import (
     UserCreate, UserResponse, UserLogin, RecipeRequest, RecipeResponse,
