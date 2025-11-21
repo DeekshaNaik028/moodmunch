@@ -11,7 +11,7 @@ import time
 from pathlib import Path
 from app.services.email_service import EmailService
 from dotenv import load_dotenv
-
+from fastapi.responses import HTMLResponse
 BASE_DIR = Path(__file__).resolve().parent
 env_path = BASE_DIR / '.env'
 load_dotenv(dotenv_path=env_path)
@@ -1081,3 +1081,154 @@ async def rate_recipe(
     except Exception as e:
         logger.error(f"Rate recipe error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+    
+# backend/main.py - ADD THIS ENDPOINT (add after the existing POST endpoint)
+
+# EXISTING POST endpoint (keep this)
+@app.post("/auth/verify-email")
+async def verify_email(data: EmailVerification, db = Depends(get_database)):
+    """Verify user email with token (POST)"""
+    try:
+        auth_service = get_auth_service()
+        result = await auth_service.verify_email(data.token, db)
+        return result
+    except CustomException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        logger.error(f"Email verification error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# NEW: Add GET endpoint for email links
+@app.get("/auth/verify-email")
+async def verify_email_get(token: str, db = Depends(get_database)):
+    """Verify user email with token (GET - for email links)"""
+    try:
+        auth_service = get_auth_service()
+        result = await auth_service.verify_email(token, db)
+        
+        # Return HTML redirect for better UX
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta http-equiv="refresh" content="0;url={os.getenv('FRONTEND_URL', 'http://localhost:3000')}/verify-email?token={token}&success=true">
+            <title>Email Verified - MoodMunch</title>
+            <style>
+                body {{
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 100vh;
+                    margin: 0;
+                    background: linear-gradient(135deg, #fce4ec 0%, #f3e5f5 50%, #e8eaf6 100%);
+                }}
+                .container {{
+                    text-align: center;
+                    padding: 40px;
+                    background: white;
+                    border-radius: 20px;
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+                    max-width: 400px;
+                }}
+                .spinner {{
+                    width: 50px;
+                    height: 50px;
+                    border: 4px solid #f3f3f3;
+                    border-top: 4px solid #D946A6;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                    margin: 0 auto 20px;
+                }}
+                @keyframes spin {{
+                    0% {{ transform: rotate(0deg); }}
+                    100% {{ transform: rotate(360deg); }}
+                }}
+                h1 {{
+                    color: #D946A6;
+                    margin-bottom: 10px;
+                }}
+                p {{
+                    color: #666;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="spinner"></div>
+                <h1>✅ Email Verified!</h1>
+                <p>Redirecting you to MoodMunch...</p>
+                <p style="font-size: 12px; color: #999; margin-top: 20px;">
+                    If you're not redirected, <a href="{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/login">click here</a>
+                </p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return HTMLResponse(content=html_content)
+        
+    except CustomException as e:
+        # Return error HTML
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta http-equiv="refresh" content="3;url={os.getenv('FRONTEND_URL', 'http://localhost:3000')}/resend-verification">
+            <title>Verification Error - MoodMunch</title>
+            <style>
+                body {{
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 100vh;
+                    margin: 0;
+                    background: linear-gradient(135deg, #fce4ec 0%, #f3e5f5 50%, #e8eaf6 100%);
+                }}
+                .container {{
+                    text-align: center;
+                    padding: 40px;
+                    background: white;
+                    border-radius: 20px;
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+                    max-width: 400px;
+                }}
+                h1 {{
+                    color: #EF4444;
+                    margin-bottom: 10px;
+                }}
+                p {{
+                    color: #666;
+                    margin-bottom: 20px;
+                }}
+                .btn {{
+                    display: inline-block;
+                    padding: 12px 24px;
+                    background: linear-gradient(135deg, #D946A6 0%, #9333EA 100%);
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 10px;
+                    font-weight: 600;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>❌ Verification Failed</h1>
+                <p>{e.detail}</p>
+                <p style="font-size: 14px; color: #999;">Redirecting to request a new link...</p>
+                <a href="{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/resend-verification" class="btn">
+                    Request New Link
+                </a>
+            </div>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=html_content, status_code=e.status_code)
+    except Exception as e:
+        logger.error(f"Email verification error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
