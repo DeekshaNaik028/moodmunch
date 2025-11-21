@@ -1,4 +1,4 @@
-// frontend/src/App.jsx - UPDATED WITH LANDING PAGE
+// frontend/src/App.jsx - UPDATED WITHOUT ADMIN
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
@@ -11,7 +11,7 @@ import { EmailVerificationPage } from './pages/EmailVerificationPage';
 import { ResendVerificationPage } from './pages/ResendVerificationPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
-import AdminPanel from './pages/AdminPanel';
+
 const App = () => {
   const { isAuthenticated, loading } = useAuth();
 
@@ -42,7 +42,7 @@ const App = () => {
         <Route path="/resend-verification" element={<ResendVerificationPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/admin" element={<AdminPanel />} />
+        
         {/* Protected app routes */}
         <Route 
           path="/app/*" 

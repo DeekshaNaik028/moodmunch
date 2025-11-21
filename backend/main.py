@@ -1,21 +1,21 @@
-# backend/main.py - SERVERLESS OPTIMIZED
+# backend/main.py - WITHOUT ADMIN PANEL
 from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import time
 from pathlib import Path
 from app.services.email_service import EmailService
-from app.api.admin import router as admin_router
 from dotenv import load_dotenv
+
 BASE_DIR = Path(__file__).resolve().parent
 env_path = BASE_DIR / '.env'
 load_dotenv(dotenv_path=env_path)
-app.include_router(admin_router)
+
 from app.database.mongodb import get_database
 from app.models.schemas import (
     UserCreate, UserResponse, UserLogin, RecipeRequest, RecipeResponse,
@@ -76,13 +76,12 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# CORS Configuration - CRITICAL FIX
-# Vercel needs explicit CORS handling
+# CORS Configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://moodmunch.vercel.app",
-        "https://*.vercel.app",  # Allow all Vercel preview deployments
+        "https://*.vercel.app",
         "http://localhost:3000",
         "http://localhost:3001",
         "http://127.0.0.1:3000"
@@ -94,7 +93,6 @@ app.add_middleware(
     max_age=3600,
 )
 
-# Add OPTIONS handler for preflight requests
 @app.options("/{path:path}")
 async def options_handler(path: str):
     """Handle CORS preflight requests"""
@@ -129,11 +127,9 @@ async def health_check():
             settings.GEMINI_API_KEY != "your-gemini-api-key-here"
         )
         
-        # Add stats to health check
         total_recipes = await db.database.recipe_history.count_documents({})
         total_users = await db.database.users.count_documents({"is_active": True})
         
-        # Calculate average rating
         pipeline = [
             {"$match": {"rating": {"$exists": True, "$ne": None}}},
             {"$group": {
@@ -180,6 +176,7 @@ async def health_check():
                 "average_rating": 4.9
             }
         }
+
 # ============== AUTHENTICATION ==============
 
 @app.post("/auth/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -216,6 +213,92 @@ async def login_user(user_credentials: UserLogin, db = Depends(get_database)):
         logger.error(f"Login error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/auth/verify-email")
+async def verify_email(data: EmailVerification, db = Depends(get_database)):
+    """Verify user email with token"""
+    try:
+        auth_service = get_auth_service()
+        result = await auth_service.verify_email(data.token, db)
+        return result
+    except CustomException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        logger.error(f"Email verification error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/auth/resend-verification")
+async def resend_verification(data: ResendVerification, db = Depends(get_database)):
+    """Resend verification email"""
+    try:
+        auth_service = get_auth_service()
+        await auth_service.resend_verification_email(data.email, db)
+        return {
+            "message": "If an account exists with this email, a verification link has been sent."
+        }
+    except CustomException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        logger.error(f"Resend verification error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/auth/forgot-password")
+async def forgot_password(data: PasswordResetRequest, db = Depends(get_database)):
+    """Request password reset email"""
+    try:
+        auth_service = get_auth_service()
+        await auth_service.request_password_reset(data.email, db)
+        return {
+            "message": "If an account exists with this email, password reset instructions have been sent."
+        }
+    except Exception as e:
+        logger.error(f"Forgot password error: {str(e)}")
+        return {
+            "message": "If an account exists with this email, password reset instructions have been sent."
+        }
+
+@app.post("/auth/reset-password")
+async def reset_password(data: PasswordReset, db = Depends(get_database)):
+    """Reset password with token"""
+    try:
+        auth_service = get_auth_service()
+        success = await auth_service.reset_password(data.token, data.new_password, db)
+        if success:
+            return {
+                "message": "Password reset successful. You can now login with your new password."
+            }
+        else:
+            raise HTTPException(status_code=400, detail="Password reset failed")
+    except CustomException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        logger.error(f"Reset password error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/auth/change-password")
+async def change_password(
+    data: PasswordChange,
+    current_user: str = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Change password (when logged in)"""
+    try:
+        auth_service = get_auth_service()
+        success = await auth_service.change_password(
+            current_user,
+            data.current_password,
+            data.new_password,
+            db
+        )
+        if success:
+            return {"message": "Password changed successfully"}
+        else:
+            raise HTTPException(status_code=400, detail="Password change failed")
+    except CustomException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        logger.error(f"Change password error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ============== INGREDIENT EXTRACTION ==============
 
 @app.post("/ingredients/extract-from-audio", response_model=IngredientExtractionResponse)
@@ -236,7 +319,6 @@ async def extract_ingredients_from_audio(
         if len(content) > settings.MAX_AUDIO_FILE_SIZE:
             raise HTTPException(status_code=400, detail="File too large")
         
-        # Save temporarily in /tmp (Vercel provides this)
         os.makedirs('/tmp/audio', exist_ok=True)
         temp_path = f'/tmp/audio/{current_user}_{int(time.time())}.wav'
         
@@ -321,7 +403,6 @@ async def generate_recipe(
             cuisine_preference=recipe_request.cuisine_preference
         )
         
-        # Save to history
         recipe_history = {
             "user_id": current_user,
             "recipe": recipe.dict(),
@@ -333,7 +414,6 @@ async def generate_recipe(
         
         await db.save_recipe_history(recipe_history)
         
-        # Log mood
         await db.save_mood_log({
             "user_id": current_user,
             "mood": recipe_request.mood.value,
@@ -346,6 +426,9 @@ async def generate_recipe(
     except Exception as e:
         logger.error(f"Recipe generation error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# Continue with remaining endpoints (recipes, users, analytics, mood)...
+# (Include all the other endpoints from the original file)
 
 # ============== RECIPE HISTORY ==============
 

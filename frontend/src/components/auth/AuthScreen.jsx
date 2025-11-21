@@ -1,4 +1,4 @@
-// frontend/src/components/auth/AuthScreen.jsx - COMPLETE VERSION
+// frontend/src/components/auth/AuthScreen.jsx - FIXED VERSION
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
@@ -6,10 +6,12 @@ import { Button } from '../common/Button';
 import { Input } from '../common/Input';
 import { Card } from '../common/Card';
 import { Logo } from '../common/Logo';
-import { ChevronRight, ChevronLeft, Mail } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Mail, ArrowLeft } from 'lucide-react';
 import { DIETARY_PREFERENCES, HEALTH_GOALS } from '../../utils/constants';
+import { useNavigate } from 'react-router-dom';
 
 export const AuthScreen = () => {
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -41,7 +43,6 @@ export const AuthScreen = () => {
       } else {
         // Register with complete profile
         await api.auth.register(formData);
-        // Show success message instead of auto-login
         setRegistrationSuccess(true);
       }
     } catch (err) {
@@ -145,7 +146,10 @@ export const AuthScreen = () => {
 
       <button
         type="button"
-        onClick={() => setIsLogin(true)}
+        onClick={() => {
+          setIsLogin(true);
+          setError('');
+        }}
         className="w-full text-sm text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
       >
         Already have an account? Sign in
@@ -328,6 +332,7 @@ export const AuthScreen = () => {
                   onClick={() => {
                     setIsLogin(true);
                     setRegistrationSuccess(false);
+                    setStep(1);
                     setFormData({
                       email: '',
                       password: '',
@@ -342,14 +347,7 @@ export const AuthScreen = () => {
                   Go to Login
                 </Button>
                 <button
-                  onClick={async () => {
-                    try {
-                      await api.auth.resendVerification(formData.email);
-                      alert('Verification email resent!');
-                    } catch (err) {
-                      alert('Failed to resend: ' + err.message);
-                    }
-                  }}
+                  onClick={() => navigate('/resend-verification')}
                   className="w-full text-sm text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
                 >
                   Resend Verification Email
@@ -367,6 +365,13 @@ export const AuthScreen = () => {
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 transition-colors">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
+          <button
+            onClick={() => navigate('/')}
+            className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors mb-4"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm">Back to Home</span>
+          </button>
           <div className="inline-block mb-4">
             <Logo size="large" />
           </div>
@@ -428,7 +433,7 @@ export const AuthScreen = () => {
 
                 <button
                   type="button"
-                  onClick={() => window.location.href = '/forgot-password'}
+                  onClick={() => navigate('/forgot-password')}
                   className="w-full text-sm text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
                 >
                   Forgot Password?
